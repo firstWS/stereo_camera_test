@@ -1,6 +1,6 @@
-# stereo-3d-poc
+# stereo_camera_test
 
-USB 스테레오(SBS) 캡처 → 보정·정류 → SGBM 시차 → YOLO(또는 더미 검출) → 3D 추정 실험 코드입니다.
+스테레오 카메라 테스트 — USB 스테레오(SBS) 캡처 → 보정·정류 → SGBM 시차 → YOLO(또는 더미 검출) → 3D 추정 실험 코드입니다.
 
 ## 빠른 시작 (Windows)
 
