@@ -1,0 +1,54 @@
+camera:
+  device_index: 0
+  width: 3200
+  height: 1200
+  fps: 60
+  backend: null
+
+sbs:
+  left_width: null
+  swap_eyes: false
+
+calibration:
+  yaml: calibration/stereo_calib.yaml
+  maps_npy_prefix: calibration/rectify_maps
+
+sgbm:
+  min_disparity: 0
+  num_disparities: 128
+  block_size: 5
+  disp12_max_diff: 1
+  uniqueness_ratio: 10
+  speckle_window_size: 100
+  speckle_range: 32
+  scale_down: 2
+
+sparse:
+  template_radius: 7
+  max_disparity: 128
+  min_disparity: 1
+
+detector:
+  kind: yolo
+  model_path: yolov8n.pt
+  conf: 0.25
+  iou: 0.45
+  imgsz: 640
+  device: null
+
+repeatability:
+  max_frames: 300
+  output_csv: out/repeatability.csv
+  warmup_frames: 10
+
+input:
+  type: camera
+  video_path: null
+
+# 미리보기 창 (GPU/원격 데스크톱 없을 때는 false 권장)
+preview:
+  enabled: true
+  # enabled: false
+  scale: 0.45
+  wait_key_ms: 1
+  show_disparity: false

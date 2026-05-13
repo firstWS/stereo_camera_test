@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+*.py[cod]
+out/
+*.csv
+yolov8*.pt
+calibration/stereo_calib.yaml
+calibration/rectify_maps_map*.npy

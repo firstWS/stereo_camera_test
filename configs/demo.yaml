@@ -1,0 +1,55 @@
+# 데모용: 더미 검출기(YOLO/토치 불필요), 프레임 수 축소.
+# 보정 파일은 setup.ps1 또는 scripts/create_placeholder_calibration.py 로 생성합니다.
+
+camera:
+  device_index: 0
+  width: 3200
+  height: 1200
+  fps: 60
+  backend: null
+
+sbs:
+  left_width: null
+  swap_eyes: false
+
+calibration:
+  yaml: calibration/stereo_calib.yaml
+  maps_npy_prefix: calibration/rectify_maps
+
+sgbm:
+  min_disparity: 0
+  num_disparities: 128
+  block_size: 5
+  disp12_max_diff: 1
+  uniqueness_ratio: 10
+  speckle_window_size: 100
+  speckle_range: 32
+  scale_down: 2
+
+sparse:
+  template_radius: 7
+  max_disparity: 128
+  min_disparity: 1
+
+detector:
+  kind: dummy
+  frac: 0.2
+
+repeatability:
+  max_frames: 4000
+  output_csv: out/repeatability_demo.csv
+  warmup_frames: 5
+
+input:
+  type: camera
+  video_path: null
+
+# 라이브 미리보기: 작업 표시줄에서 OpenCV 창 선택 후 Q 로 종료 (대문자 Q 도 됨).
+# wait_key_ms 를 크게 두면 창이 순식간에 사라지지 않음.
+preview:
+  enabled: true
+  scale: 0.45
+  wait_key_ms: 33
+  show_disparity: true
+  window_left: "stereo-3d-poc | left (rectified)"
+  window_disparity: "stereo-3d-poc | disparity"
