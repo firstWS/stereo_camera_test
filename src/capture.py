@@ -4,12 +4,88 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterator
+from typing import Iterator, Sequence
 
 import cv2
 import numpy as np
 
 from stereo_types import StereoFrame
+
+
+def enumerate_aligned_stereo_pairs(
+    left_dir: Path,
+    right_dir: Path,
+    patterns: Sequence[str],
+) -> list[tuple[Path, Path]]:
+    """
+    Pairs images that share the same filename in left_dir and right_dir.
+
+    Patterns are globs relative to left_dir (e.g. '*.png').
+    Sorted by filename case-insensitive.
+    """
+    left_root = Path(left_dir)
+    right_root = Path(right_dir)
+    by_name: dict[str, Path] = {}
+    for pat in patterns:
+        for p in sorted(left_root.glob(pat)):
+            if p.is_file() and p.name not in by_name:
+                by_name[p.name] = p
+    out: list[tuple[Path, Path]] = []
+    skipped_left: list[str] = []
+    for name in sorted(by_name.keys(), key=str.lower):
+        lp = by_name[name]
+        rp = right_root / name
+        if rp.is_file():
+            out.append((lp, rp))
+        else:
+            skipped_left.append(name)
+    if skipped_left:
+        print(
+            f"[StereoImageFolder] Skipped {len(skipped_left)} left file(s) with no matching name in '{right_root}': "
+            + ", ".join(skipped_left[:5])
+            + (" ..." if len(skipped_left) > 5 else "")
+        )
+    if not out:
+        raise RuntimeError(
+            f"No usable left/right pairs under {left_root} / {right_root}. "
+            "Use identical filenames in both folders."
+        )
+    return out
+
+
+class StereoImageFolderReader:
+    """Read stereo sequences from two folders with matching filenames."""
+
+    def __init__(self, pairs: list[tuple[Path, Path]]) -> None:
+        self._pairs = pairs
+        self._idx = 0
+
+    @classmethod
+    def from_dirs(cls, left_dir: Path, right_dir: Path, patterns: Sequence[str]) -> StereoImageFolderReader:
+        pairs = enumerate_aligned_stereo_pairs(left_dir, right_dir, list(patterns))
+        return cls(pairs)
+
+    @property
+    def pair_count(self) -> int:
+        return len(self._pairs)
+
+    def release(self) -> None:
+        self._idx = 0
+
+    def read_stereo_pair(self) -> tuple[bool, StereoFrame]:
+        bad = StereoFrame(
+            np.zeros((1, 1, 3), dtype=np.uint8),
+            np.zeros((1, 1, 3), dtype=np.uint8),
+        )
+        while self._idx < len(self._pairs):
+            lp, rp = self._pairs[self._idx]
+            self._idx += 1
+            L = cv2.imread(str(lp))
+            R = cv2.imread(str(rp))
+            if L is not None and R is not None:
+                return True, StereoFrame(left_bgr=L, right_bgr=R)
+            print(f"[StereoImageFolder] Skipping unreadable pair: {lp.name} / {rp.name}")
+        return False, bad
 
 
 @dataclass

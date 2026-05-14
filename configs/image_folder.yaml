@@ -1,5 +1,5 @@
-# 데모용: 더미 검출기(YOLO/토치 불필요), 프레임 수 축소.
-# 보정 파일은 setup.ps1 또는 scripts/create_placeholder_calibration.py 로 생성합니다.
+# 카메라 없이 좌/우 이미지 폴더로 파이프라인 테스트.
+# samples/stereo_pairs/left 와 right 에 동일 파일명의 쌍을 넣으세요.
 
 camera:
   device_index: 0
@@ -36,28 +36,31 @@ detector:
   frac: 0.2
 
 repeatability:
-  max_frames: 4000
-  output_csv: out/repeatability_demo.csv
-  warmup_frames: 5
+  max_frames: 5000
+  output_csv: out/repeatability_from_images.csv
+  warmup_frames: 0
 
 input:
-  type: camera
+  type: image_folder
   video_path: null
+  image_folder:
+    left_dir: samples/stereo_pairs/left
+    right_dir: samples/stereo_pairs/right
+    patterns:
+      - "*.png"
+      - "*.jpg"
+      - "*.jpeg"
 
-# 미리보기: native 해상도(scale=1). Q=종료, S=좌/우 한 쌍 PNG(image_folder 재실행용).
 preview:
   enabled: true
   scale: 1.0
-  wait_key_ms: 33
+  wait_key_ms: 100
   snapshot_dir: out/snapshots
-  show_disparity: true
+  # 한 장만 넣어도 창 유지; 다음 쌍: Space 또는 n, 종료: Q
+  image_folder_hold_until_quit: true
+  image_folder_hold_poll_ms: 50
   windows:
     left: true
     right: true
     combined: true
     disparity: true
-  titles:
-    left: "stereo-3d-poc | left (rectified)"
-    right: "stereo-3d-poc | right (rectified)"
-    combined: "stereo-3d-poc | LR rectified concat"
-    disparity: "stereo-3d-poc | disparity"

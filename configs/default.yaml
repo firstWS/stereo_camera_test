@@ -45,10 +45,15 @@ input:
   type: camera
   video_path: null
 
-# 미리보기 창 (GPU/원격 데스크톱 없을 때는 false 권장)
+# 미리보기: scale=1 은 원본 해상도. Q / S 키 지원.
 preview:
   enabled: true
-  # enabled: false
-  scale: 0.45
+  scale: 1.0
   wait_key_ms: 1
-  show_disparity: false
+  snapshot_dir: out/snapshots
+  show_disparity: true
+  windows:
+    left: true
+    right: true
+    combined: true
+    disparity: true

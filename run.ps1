@@ -6,11 +6,13 @@
   .\run.ps1
   .\run.ps1 -Setup
   .\run.ps1 -Full
+  .\run.ps1 -ImageFolder
   .\run.ps1 -Config configs\default.yaml
 #>
 param(
     [switch]$Setup,
     [switch]$Full,
+    [switch]$ImageFolder,
     [string]$Config = ""
 )
 
@@ -21,7 +23,15 @@ Set-Location $RepoRoot
 . (Join-Path $RepoRoot "scripts\sync-session-path.ps1")
 
 if ([string]::IsNullOrWhiteSpace($Config)) {
-    $Config = if ($Full) { "configs\default.yaml" } else { "configs\demo.yaml" }
+    if ($ImageFolder) {
+        $Config = "configs\image_folder.yaml"
+    }
+    elseif ($Full) {
+        $Config = "configs\default.yaml"
+    }
+    else {
+        $Config = "configs\demo.yaml"
+    }
 }
 
 $venvPy = Join-Path $RepoRoot ".venv\Scripts\python.exe"

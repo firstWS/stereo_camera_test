@@ -10,6 +10,7 @@ import argparse
 import csv
 import sys
 import time
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -30,7 +31,12 @@ def _resolve_repo_path(value: str | Path | None) -> Path | None:
     return p.resolve() if p.is_absolute() else (_REPO_ROOT / p).resolve()
 
 from calibration_repository import load_calibration  # noqa: E402
-from capture import CaptureAdapter, SBSSplitConfig, split_sbs_frame  # noqa: E402
+from capture import (
+    CaptureAdapter,
+    SBSSplitConfig,
+    StereoImageFolderReader,
+    split_sbs_frame,
+)
 from depth_dense import (  # noqa: E402
     SGBMConfig,
     compute_disparity_map,
@@ -43,6 +49,7 @@ from detect import (  # noqa: E402
     UltralyticsYOLODetector,
     pick_primary_box,
 )
+from stereo_types import StereoFrame  # noqa: E402
 from split_rectify import crop_to_calib_size, rectify_stereo_frame  # noqa: E402
 
 _PREVIEW_REGISTERED: set[str] = set()
@@ -58,23 +65,28 @@ def _preview_ensure_named(win_title: str) -> None:
         _PREVIEW_REGISTERED.add(win_title)
 
 
-def _preview_update(
-    preview_cfg: dict[str, Any],
-    left_bgr: np.ndarray,
-    prim: Any,
-    disparity: np.ndarray | None,
-    est_a: Any,
-    est_b: Any,
-) -> bool:
-    """
-    Show OpenCV windows. Returns True if user pressed 'q' or 'Q' to quit.
-    Requires GUI-enabled OpenCV (not headless-only wheels on some systems).
-    """
-    scale = float(preview_cfg.get("scale", 0.45))
-    win_left = str(preview_cfg.get("window_left", "stereo-3d-poc | left (rectified)"))
-    win_disp = str(preview_cfg.get("window_disparity", "stereo-3d-poc | disparity"))
-    wait_ms = max(1, int(preview_cfg.get("wait_key_ms", 1)))
+def _disparity_colormap_bgr(
+    disparity: np.ndarray | None, fallback_hw: tuple[int, int]
+) -> np.ndarray:
+    h, w = fallback_hw
+    color = np.zeros((h, w, 3), dtype=np.uint8)
+    if disparity is None:
+        return color
+    d = disparity.astype(np.float32)
+    mask = d > 0
+    if not np.any(mask):
+        return color
+    lo = float(np.percentile(d[mask], 5))
+    hi = float(np.percentile(d[mask], 95))
+    if hi <= lo:
+        hi = lo + 1e-3
+    u = np.clip((d - lo) / (hi - lo), 0.0, 1.0)
+    u8 = (u * 255).astype(np.uint8)
+    u8[~mask] = 0
+    return cv2.applyColorMap(u8, cv2.COLORMAP_TURBO)
 
+
+def _annotate_left(left_bgr: np.ndarray, prim: Any, est_a: Any, est_b: Any) -> np.ndarray:
     vis = left_bgr.copy()
     if prim is not None:
         x1, y1, x2, y2 = map(int, prim.xyxy)
@@ -82,7 +94,7 @@ def _preview_update(
         bcx = int((x1 + x2) * 0.5)
         bcy = int(y2)
         cv2.circle(vis, (bcx, bcy), 5, (0, 255, 255), -1, lineType=cv2.LINE_AA)
-
+    overlay_bgr = (0, 0, 255)
     lines: list[str] = []
     if prim is None:
         lines.append("no detection")
@@ -97,8 +109,6 @@ def _preview_update(
         else:
             notes_b = getattr(est_b, "notes", "") if est_b is not None else ""
             lines.append(f"B: {notes_b}"[:80])
-
-    overlay_bgr = (0, 0, 255)  # red text (BGR)
     for i, line in enumerate(lines):
         cv2.putText(
             vis,
@@ -110,33 +120,142 @@ def _preview_update(
             1,
             cv2.LINE_AA,
         )
+    return vis
 
-    if 0 < scale != 1.0:
-        vis = cv2.resize(vis, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
 
-    _preview_ensure_named(win_left)
-    cv2.imshow(win_left, vis)
+def _preview_scale_visual(img: np.ndarray, scale: float) -> np.ndarray:
+    if scale <= 0 or abs(scale - 1.0) < 1e-9:
+        return img
+    return cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
 
-    if preview_cfg.get("show_disparity") and disparity is not None:
-        d = disparity.astype(np.float32)
-        mask = d > 0
-        color = np.zeros((d.shape[0], d.shape[1], 3), dtype=np.uint8)
-        if np.any(mask):
-            lo = float(np.percentile(d[mask], 5))
-            hi = float(np.percentile(d[mask], 95))
-            if hi <= lo:
-                hi = lo + 1e-3
-            u = np.clip((d - lo) / (hi - lo), 0.0, 1.0)
-            u8 = (u * 255).astype(np.uint8)
-            u8[~mask] = 0
-            color = cv2.applyColorMap(u8, cv2.COLORMAP_TURBO)
-        if 0 < scale != 1.0:
-            color = cv2.resize(color, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
-        _preview_ensure_named(win_disp)
-        cv2.imshow(win_disp, color)
 
+def _snapshot_image_folder_pair(
+    dest_dir: Path,
+    seq: list[int],
+    frame_loop_idx: int,
+    stereo_pre_rectify: StereoFrame,
+) -> None:
+    """
+    Saves cropped (calib-sized) left/right BGR for ``input.type: image_folder`` replay.
+    Same basename under dest_dir/left and dest_dir/right.
+    """
+    left_dir = dest_dir / "left"
+    right_dir = dest_dir / "right"
+    left_dir.mkdir(parents=True, exist_ok=True)
+    right_dir.mkdir(parents=True, exist_ok=True)
+    seq[0] += 1
+    n = seq[0]
+    name = f"{n:04d}_f{frame_loop_idx:05d}.png"
+    lp = left_dir / name
+    rp = right_dir / name
+    cv2.imwrite(str(lp), stereo_pre_rectify.left_bgr)
+    cv2.imwrite(str(rp), stereo_pre_rectify.right_bgr)
+    print(f"Saved image_folder pair #{n}: {lp.name} → {left_dir} / {right_dir}")
+
+
+def _preview_image_folder_hold_spin(
+    preview_cfg: dict[str, Any],
+    preview_state: dict[str, Any],
+    loop_idx: int,
+    stereo_pre_rectify: StereoFrame,
+) -> bool:
+    """
+    After ``_preview_tick``, keep windows open until user chooses next action.
+
+    Returns True if user pressed Q (quit entire session).
+    Returns False if Space or n/N (advance to next stereo pair).
+    S saves another PNG pair without advancing.
+    """
+    poll_ms = max(1, int(preview_cfg.get("image_folder_hold_poll_ms", 50)))
+    print(
+        "[hold] Space or n = next pair  |  Q = quit session  |  S = save left/right PNG again",
+        flush=True,
+    )
+    while True:
+        key = cv2.waitKey(poll_ms) & 0xFF
+        if key in (ord("q"), ord("Q")):
+            return True
+        if key in (ord(" "), ord("n"), ord("N")):
+            return False
+        if key in (ord("s"), ord("S")):
+            sess = preview_state.get("snapshot_session_dir")
+            sq = preview_state.get("snap_seq")
+            if isinstance(sess, Path) and isinstance(sq, list):
+                _snapshot_image_folder_pair(sess, sq, loop_idx, stereo_pre_rectify)
+            else:
+                print("Snapshots disabled (no snapshot session directory).")
+
+
+def _preview_tick(
+    preview_cfg: dict[str, Any],
+    rect: StereoFrame,
+    prim: Any,
+    disparity: np.ndarray | None,
+    est_a: Any,
+    est_b: Any,
+    loop_idx: int,
+    preview_state: dict[str, Any],
+    stereo_pre_rectify: StereoFrame,
+) -> bool:
+    """
+    Multi-window preview at native resolution unless preview.scale != 1.
+    Keys: Q quit; S saves ``left/`` + ``right/`` PNG pair (calib-cropped, pre-rectify)
+    for ``image_folder`` analysis replay.
+
+    Returns True if user pressed Q (quit session). After return, callers may invoke
+    ``_preview_image_folder_hold_spin`` when ``preview.image_folder_hold_until_quit`` is set.
+    """
+    scale = float(preview_cfg.get("scale", 1.0))
+
+    wins = preview_cfg.get("windows")
+    if isinstance(wins, dict):
+        show_left = bool(wins.get("left", True))
+        show_right = bool(wins.get("right", True))
+        show_combined = bool(wins.get("combined", True))
+        show_disp = bool(wins.get("disparity", True))
+    else:
+        show_left = True
+        show_right = True
+        show_combined = True
+        show_disp = bool(preview_cfg.get("show_disparity", True))
+
+    ttl = preview_cfg.get("titles") if isinstance(preview_cfg.get("titles"), dict) else {}
+    wt_left = str(ttl.get("left", preview_cfg.get("window_left", "stereo-3d-poc | left (rectified)")))
+    wt_right = str(ttl.get("right", "stereo-3d-poc | right (rectified)"))
+    wt_combo = str(ttl.get("combined", "stereo-3d-poc | LR rectified concat"))
+    wt_disp = str(ttl.get("disparity", preview_cfg.get("window_disparity", "stereo-3d-poc | disparity")))
+
+    hl, wl = rect.left_bgr.shape[:2]
+    overlay_left_full = _annotate_left(rect.left_bgr, prim, est_a, est_b)
+    disp_color_full = _disparity_colormap_bgr(disparity, (hl, wl))
+    lr_concat = np.hstack([overlay_left_full, rect.right_bgr])
+
+    panels: list[tuple[np.ndarray, str]] = []
+    if show_left:
+        panels.append((_preview_scale_visual(overlay_left_full, scale), wt_left))
+    if show_right:
+        panels.append((_preview_scale_visual(rect.right_bgr.copy(), scale), wt_right))
+    if show_combined:
+        panels.append((_preview_scale_visual(lr_concat, scale), wt_combo))
+    if show_disp:
+        panels.append((_preview_scale_visual(disp_color_full, scale), wt_disp))
+
+    for img, title in panels:
+        _preview_ensure_named(title)
+        cv2.imshow(title, img)
+
+    wait_ms = max(1, int(preview_cfg.get("wait_key_ms", 1)))
     key = cv2.waitKey(wait_ms) & 0xFF
-    return key in (ord("q"), ord("Q"))
+    if key in (ord("q"), ord("Q")):
+        return True
+    if key in (ord("s"), ord("S")):
+        sess = preview_state.get("snapshot_session_dir")
+        sq = preview_state.get("snap_seq")
+        if isinstance(sess, Path) and isinstance(sq, list):
+            _snapshot_image_folder_pair(sess, sq, loop_idx, stereo_pre_rectify)
+        else:
+            print("Snapshots disabled (no snapshot session directory).")
+    return False
 
 
 def build_detector(cfg: dict):
@@ -190,6 +309,26 @@ def run_session(cfg_path: Path) -> Path:
         cap = cv2.VideoCapture(str(vp))
         if not cap.isOpened():
             raise SystemExit(f"Cannot open video {vp}")
+    elif in_type in ("image_folder", "images"):
+        img_cfg = inp.get("image_folder") or inp.get("images")
+        if not isinstance(img_cfg, dict):
+            raise SystemExit(
+                "input.image_folder (or images) dict required "
+                "(keys: left_dir, right_dir [, patterns])."
+            )
+        ld_raw = img_cfg.get("left_dir")
+        rd_raw = img_cfg.get("right_dir")
+        if not ld_raw or not rd_raw:
+            raise SystemExit("image_folder.left_dir and image_folder.right_dir are required.")
+        ld = _resolve_repo_path(ld_raw)
+        rd = _resolve_repo_path(rd_raw)
+        assert ld is not None and rd is not None
+        if not ld.is_dir() or not rd.is_dir():
+            raise SystemExit(f"Stereo image dirs must exist: {ld} , {rd}")
+        patterns_raw = img_cfg.get("patterns") or ["*.png", "*.jpg", "*.jpeg"]
+        patt = [str(x) for x in patterns_raw]
+        cap = StereoImageFolderReader.from_dirs(ld, rd, patt)
+        print(f"[image_folder] Stereo pairs queued: {cap.pair_count} (resolution from files).")
     else:
         raise SystemExit(f"Unknown input.type {in_type}")
 
@@ -225,14 +364,27 @@ def run_session(cfg_path: Path) -> Path:
     maps = calib.ensure_maps()
     Q = calib.Q
 
+    preview_state: dict[str, Any] = {}
+
+    img_folder_hold = bool(preview_cfg.get("image_folder_hold_until_quit"))
+
     if preview_enabled:
         print(
-            "Preview windows enabled — click the OpenCV window (taskbar / Alt+Tab), then press Q to quit."
+            "Preview: focus an OpenCV window (Alt+Tab) — "
+            "[Q]=quit session  |  [S]=save left/right PNG pair (image_folder replay) under snapshots session."
         )
-        print(
-            f"  wait_key_ms={preview_cfg.get('wait_key_ms', 1)}  "
-            f"max_frames={max_frames}"
-        )
+        if img_folder_hold and in_type in ("image_folder", "images"):
+            print(
+                "  image_folder hold until quit: after each pair, Space/n = next  |  Q = exit run."
+            )
+        snap_root = _resolve_repo_path(preview_cfg.get("snapshot_dir", "out/snapshots"))
+        assert snap_root is not None
+        sess_dir = snap_root / datetime.now().strftime("%Y%m%d_%H%M%S")
+        sess_dir.mkdir(parents=True, exist_ok=True)
+        preview_state["snapshot_session_dir"] = sess_dir
+        preview_state["snap_seq"] = [0]
+        print(f"  wait_key_ms={preview_cfg.get('wait_key_ms', 1)}  max_frames={max_frames}")
+        print(f"  snapshot session: {sess_dir}")
 
     fieldnames = [
         "frame_idx",
@@ -274,6 +426,10 @@ def run_session(cfg_path: Path) -> Path:
                     ok, frame_stereo = cap.read_stereo(split_cfg)
                     if not ok:
                         continue
+                elif in_type in ("image_folder", "images"):
+                    ok, frame_stereo = cap.read_stereo_pair()
+                    if not ok:
+                        break
                 else:
                     ok, raw = cap.read()
                     if not ok or raw is None:
@@ -295,8 +451,23 @@ def run_session(cfg_path: Path) -> Path:
                 prim = pick_primary_box(dets)
                 if prim is None:
                     if preview_enabled:
-                        if _preview_update(preview_cfg, left, None, None, None, None):
+                        if _preview_tick(
+                            preview_cfg,
+                            rect,
+                            None,
+                            None,
+                            None,
+                            None,
+                            idx,
+                            preview_state,
+                            frame_stereo,
+                        ):
                             break
+                        if img_folder_hold and in_type in ("image_folder", "images"):
+                            if _preview_image_folder_hold_spin(
+                                preview_cfg, preview_state, idx, frame_stereo
+                            ):
+                                break
                     if idx >= warmup:
                         w.writerow(
                             {
@@ -341,8 +512,23 @@ def run_session(cfg_path: Path) -> Path:
                 )
 
                 if preview_enabled:
-                    if _preview_update(preview_cfg, left, prim, disp, est_a, est_b):
+                    if _preview_tick(
+                        preview_cfg,
+                        rect,
+                        prim,
+                        disp,
+                        est_a,
+                        est_b,
+                        idx,
+                        preview_state,
+                        frame_stereo,
+                    ):
                         break
+                    if img_folder_hold and in_type in ("image_folder", "images"):
+                        if _preview_image_folder_hold_spin(
+                            preview_cfg, preview_state, idx, frame_stereo
+                        ):
+                            break
 
                 if idx >= warmup:
                     w.writerow(
