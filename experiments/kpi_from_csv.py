@@ -18,6 +18,14 @@ def _parse_float(x: str) -> float | None:
         return None
 
 
+def _row_is_primary_detection(r: dict) -> bool:
+    """Legacy CSV has no det_idx; multi-object CSV uses det_idx 0 for highest-confidence box."""
+    raw = r.get("det_idx")
+    if raw is None or str(raw).strip() == "":
+        return True
+    return str(raw).strip() == "0"
+
+
 def _iqr(values: list[float]) -> float:
     if len(values) < 4:
         return float("nan")
@@ -33,6 +41,8 @@ def summarize_csv(path: Path) -> dict:
     def collect(col: str, valid_flag: str) -> list[float]:
         out: list[float] = []
         for r in rows:
+            if not _row_is_primary_detection(r):
+                continue
             if str(r.get(valid_flag, "")).lower() not in ("1", "true", "yes"):
                 continue
             v = _parse_float(str(r.get(col, "")).strip())
@@ -57,9 +67,14 @@ def summarize_csv(path: Path) -> dict:
                 "iqr": _iqr(vals),
             }
 
-        total = len(rows)
-        ok = sum(1 for r in rows if str(r.get(f"{track}_valid", "")).lower() in ("1", "true", "yes"))
-        print(f"\n== Track {track} ==")
+        total = sum(1 for r in rows if _row_is_primary_detection(r))
+        ok = sum(
+            1
+            for r in rows
+            if _row_is_primary_detection(r)
+            and str(r.get(f"{track}_valid", "")).lower() in ("1", "true", "yes")
+        )
+        print(f"\n== Track {track} == (primary det_idx rows only)")
         print(f"valid_frames: {ok} / {total} ({(ok/total*100) if total else 0:.1f}%)")
         for name, vals in [("X", xs), ("Y", ys), ("Z", zs)]:
             st = stats(vals)
@@ -68,6 +83,8 @@ def summarize_csv(path: Path) -> dict:
     # Frame-to-frame jump Z (track A)
     zseq: list[tuple[int, float]] = []
     for r in rows:
+        if not _row_is_primary_detection(r):
+            continue
         if str(r.get("A_valid", "")).lower() not in ("1", "true", "yes"):
             continue
         fi = int(float(r["frame_idx"]))

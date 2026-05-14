@@ -52,7 +52,7 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned   # 한 번만, 스크립트
 
 `configs/image_folder.yaml`에는 **`preview.image_folder_hold_until_quit: true`** 가 기본입니다. 한 장만 넣어도 창이 바로 닫히지 않고, **종료는 `Q`**, 다음 쌍으로 넘어가려면 **`Space`** 또는 **`n`** 입니다.
 
-창 종류·해상도는 YAML `preview.windows`, `preview.scale` 참고.
+창 구성: **2개** — `windows.combined` 이 켜지면 기본적으로 정류 **좌안 RGB 한 장**(YOLO와 같은 뷰), `windows.disparity` 가 켜지면 **시차 맵** 한 창(둘 다 켜는 것이 기본). 예전처럼 **L|R 가로 합성** 을 보이려면 `preview.combined_side_by_side_stereo: true`. 예전 4창에서 **좌·우 단독 창만** 코드에 주석으로 남기고 비활성화했습니다. 한 창에 세로로 붙이려면 `preview.stack_disparity_below: true`. 미리보기 창 크기는 `preview.scale`(기본 `0.5`면 가로·세로 절반, `1`이면 표시 해상도 원본), `window_autosize` 참고. 시차 깜빡임 완화는 `disparity_percentile_smooth_alpha` 또는 `disparity_vis_min` / `max`.
 
 
 
@@ -77,6 +77,15 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned   # 한 번만, 스크립트
 .\.venv\Scripts\python.exe scripts\calibrate_from_images.py --left_dir "<좌>" --right_dir "<우>" --board 9,6 --square_mm 25 --out_yaml calibration\stereo_calib.yaml --maps_prefix calibration\rectify_maps
 
 ```
+
+
+
+## AprilTag 간격으로 깊이 스케일 (선택)
+
+정류된 좌안 그레이에서 AprilTag를 검출한 뒤, 두 태그 중심의 `Q` 기반 3D 거리를 **`apriltag_scale.known_spacing_m`**(예: 실측 1 m)에 맞추는 배율을 구합니다. **`apply_scale_to_depth: true`** 이면 Track A/B의 `X,Y,Z`에 그 배율을 곱합니다. **`dictionary`** 는 실물 태그 패밀리와 같아야 합니다(`APRILTAG_36H11`, `APRILTAG_25H9` 등).  
+`tag_id_a` / `tag_id_b` 를 비우면 검출된 태그 중 ID가 가장 작은 두 개를 사용합니다.
+
+`configs/default.yaml` 의 `apriltag_scale` 블록을 참고하고, 사용 시 **`enabled: true`** 로 바꿉니다.
 
 
 
@@ -130,7 +139,7 @@ input:
 
 ## CSV 요약
 
-
+한 프레임에 검출이 여러 개면 **행이 여러 줄** 생깁니다. 열 **`det_idx`** 는 해당 프레임 안에서 신뢰도 순(0이 최고), **`class_id`** / **`label`** 은 YOLO 클래스입니다. 예전처럼 **대표 박스 한 줄만** 남기려면 YAML에서 **`repeatability.log_all_boxes: false`** 로 두면 됩니다.
 
 ```powershell
 
@@ -138,6 +147,7 @@ input:
 
 ```
 
+`kpi_from_csv.py` 통계는 **`det_idx == 0`(대표 검출)** 행만 사용합니다.
 
 
 ## 수동 설치 (스크립트 없이)

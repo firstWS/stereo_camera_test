@@ -35,10 +35,23 @@ detector:
   kind: dummy
   frac: 0.2
 
+apriltag_scale:
+  enabled: false
+  dictionary: APRILTAG_36H11
+  known_spacing_m: 1.0
+  tag_id_a: null
+  tag_id_b: null
+  sample_radius: 2
+  min_disp: 1.0
+  draw: true
+  apply_scale_to_depth: true
+
 repeatability:
   max_frames: 5000
   output_csv: out/repeatability_from_images.csv
   warmup_frames: 0
+  log_all_boxes: true
+  max_boxes_per_frame: 64
 
 input:
   type: image_folder
@@ -53,14 +66,16 @@ input:
 
 preview:
   enabled: true
-  scale: 1.0
+  scale: 0.5
+  window_autosize: true
   wait_key_ms: 100
   snapshot_dir: out/snapshots
   # 한 장만 넣어도 창 유지; 다음 쌍: Space 또는 n, 종료: Q
   image_folder_hold_until_quit: true
   image_folder_hold_poll_ms: 50
+  disparity_percentile_smooth_alpha: 0.18
+  stack_disparity_below: false
+  combined_side_by_side_stereo: false
   windows:
-    left: true
-    right: true
     combined: true
     disparity: true

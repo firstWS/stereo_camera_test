@@ -36,24 +36,40 @@ detector:
   imgsz: 640
   device: null
 
+# 두 태그 중심의 triangulation 거리를 known_spacing_m 에 맞추는 배율로 Z 등 보정 (dictionary는 실물 태그 패밀리와 동일해야 함).
+apriltag_scale:
+  enabled: true
+  dictionary: APRILTAG_36H11
+  known_spacing_m: 1.0
+  tag_id_a: null
+  tag_id_b: null
+  sample_radius: 2
+  min_disp: 1.0
+  draw: true
+  apply_scale_to_depth: true
+
 repeatability:
   max_frames: 300
   output_csv: out/repeatability.csv
   warmup_frames: 10
+  log_all_boxes: true
+  max_boxes_per_frame: 64
 
 input:
   type: camera
   video_path: null
 
-# 미리보기: scale=1 은 원본 해상도. Q / S 키 지원.
+# 미리보기: scale 은 OpenCV 창에 넣는 표시 배율(1=원본, 0.5=가로세로 절반). Q / S 키 지원.
 preview:
   enabled: true
-  scale: 1.0
+  scale: 0.5
+  window_autosize: true
   wait_key_ms: 1
   snapshot_dir: out/snapshots
-  show_disparity: true
+  disparity_percentile_smooth_alpha: 0.18
+  stack_disparity_below: false
+  # false: combined 창 = 정류 좌안 RGB 한 장(YOLO와 동일). true: 좌|우 가로 합성.
+  combined_side_by_side_stereo: false
   windows:
-    left: true
-    right: true
     combined: true
     disparity: true

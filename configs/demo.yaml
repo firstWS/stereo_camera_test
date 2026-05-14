@@ -35,29 +35,42 @@ detector:
   kind: dummy
   frac: 0.2
 
+apriltag_scale:
+  enabled: false
+  dictionary: APRILTAG_36H11
+  known_spacing_m: 1.0
+  tag_id_a: null
+  tag_id_b: null
+  sample_radius: 2
+  min_disp: 1.0
+  draw: true
+  apply_scale_to_depth: true
+
 repeatability:
   max_frames: 4000
   output_csv: out/repeatability_demo.csv
   warmup_frames: 5
+  log_all_boxes: true
+  max_boxes_per_frame: 64
 
 input:
   type: camera
   video_path: null
 
-# 미리보기: native 해상도(scale=1). Q=종료, S=좌/우 한 쌍 PNG(image_folder 재실행용).
+# 미리보기: scale 은 표시 배율(0.5=창 절반). Q=종료, S=좌/우 한 쌍 PNG(image_folder 재실행용).
 preview:
   enabled: true
-  scale: 1.0
+  scale: 0.5
+  window_autosize: true
   wait_key_ms: 33
   snapshot_dir: out/snapshots
-  show_disparity: true
+  disparity_percentile_smooth_alpha: 0.18
+  stack_disparity_below: false
+  combined_side_by_side_stereo: false
   windows:
-    left: true
-    right: true
     combined: true
     disparity: true
   titles:
-    left: "stereo-3d-poc | left (rectified)"
-    right: "stereo-3d-poc | right (rectified)"
-    combined: "stereo-3d-poc | LR rectified concat"
+    merged: "stereo-3d-poc | left RGB + disparity"
+    combined: "stereo-3d-poc | left RGB"
     disparity: "stereo-3d-poc | disparity"
