@@ -1,4 +1,4 @@
-# 데모용: 더미 검출기(YOLO/토치 불필요), 프레임 수 축소.
+# 데모용: 프레임 수 축소, YOLO 검출(Ultralytics 필요).
 # 보정 파일은 setup.ps1 또는 scripts/create_placeholder_calibration.py 로 생성합니다.
 
 camera:
@@ -32,8 +32,12 @@ sparse:
   min_disparity: 1
 
 detector:
-  kind: dummy
-  frac: 0.2
+  kind: yolo
+  model_path: yolo11s.pt
+  conf: 0.9
+  iou: 0.45
+  imgsz: 640
+  device: null
 
 apriltag_scale:
   enabled: false

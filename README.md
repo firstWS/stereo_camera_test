@@ -2,7 +2,7 @@
 
 
 
-USB 스테레오(SBS) 캡처 → 보정·정류 → SGBM 시차 → 검출(YOLO 또는 더미) → 3D 추정 실험 코드입니다.
+USB 스테레오(SBS) 캡처 → 보정·정류 → SGBM 시차 → 검출(YOLO) → 3D 추정 실험 코드입니다.
 
 
 
@@ -24,7 +24,7 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned   # 한 번만, 스크립트
 
 
 
-- `.\run.ps1` — 데모(`configs/demo.yaml`, 더미 검출, 미리보기 켜짐)
+- `.\run.ps1` — 데모(`configs/demo.yaml`, YOLO 검출·미리보기 켜짐)
 
 - `.\run.ps1 -Setup` — 설치(`setup.ps1`) 다시 한 뒤 실행
 

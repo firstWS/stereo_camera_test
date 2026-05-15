@@ -142,7 +142,7 @@ def _annotate_left(
     boxes_depths: list[tuple[BBox, Any, Any]],
     extra_lines: list[str] | None = None,
 ) -> np.ndarray:
-    """Draw every ``(BBox, est_a, est_b)`` plus summary lines from detection #0."""
+    """Draw every ``(BBox, est_a, est_b)``: boxes, centered ``X,Y,Z`` (camera m), summary #0."""
     vis = left_bgr.copy()
     overlay_bgr = (0, 0, 255)
     lines: list[str] = []
@@ -153,6 +153,8 @@ def _annotate_left(
         for i, (bbox, est_a, est_b) in enumerate(boxes_depths):
             x1, y1, x2, y2 = map(int, bbox.xyxy)
             color = _BOX_COLORS_BGR[i % len(_BOX_COLORS_BGR)]
+            cx_f = (x1 + x2) * 0.5
+            cy_f = (y1 + y2) * 0.5
             cv2.rectangle(vis, (x1, y1), (x2, y2), color, 2)
             bcx = int((x1 + x2) * 0.5)
             bcy = int(y2)
@@ -173,6 +175,52 @@ def _annotate_left(
                 1.0,
                 color,
                 1,
+                cv2.LINE_AA,
+            )
+            fs, tk = 1.35, 3
+            font_face = cv2.FONT_HERSHEY_DUPLEX
+            if est_a is not None and getattr(est_a, "valid", False):
+                xyz_line = (
+                    f"X={est_a.X:.2f}  Y={est_a.Y:.2f}  Z={est_a.Z:.2f} m"
+                )
+            elif est_b is not None and getattr(est_b, "valid", False):
+                xyz_line = (
+                    f"X={est_b.X:.2f}  Y={est_b.Y:.2f}  Z={est_b.Z:.2f} m"
+                )
+            else:
+                xyz_line = "X=--- Y=--- Z=---"
+            xyz_line = xyz_line[:80]
+            (tw, th), bl = cv2.getTextSize(xyz_line, font_face, fs, tk)
+            tx = int(round(cx_f - tw * 0.5))
+            ty = int(round(cy_f + th * 0.5 - bl))
+            for ox2, oy2 in (
+                (-3, -3),
+                (-3, 3),
+                (3, -3),
+                (3, 3),
+                (-4, 0),
+                (4, 0),
+                (0, -4),
+                (0, 4),
+            ):
+                cv2.putText(
+                    vis,
+                    xyz_line,
+                    (tx + ox2, ty + oy2),
+                    font_face,
+                    fs,
+                    (0, 0, 0),
+                    tk + 1,
+                    cv2.LINE_AA,
+                )
+            cv2.putText(
+                vis,
+                xyz_line,
+                (tx, ty),
+                font_face,
+                fs,
+                color,
+                tk,
                 cv2.LINE_AA,
             )
 
@@ -276,6 +324,19 @@ def _preview_image_folder_hold_spin(
                 _snapshot_image_folder_pair(sess, sq, loop_idx, stereo_pre_rectify)
             else:
                 print("Snapshots disabled (no snapshot session directory).")
+
+
+def _preview_needs_disparity_map(preview_cfg: dict[str, Any]) -> bool:
+    """True when ``_preview_tick`` will call ``_disparity_colormap_bgr`` (needs disparity array)."""
+    wins = preview_cfg.get("windows")
+    show_stack_disp = bool(preview_cfg.get("stack_disparity_below", False))
+    if isinstance(wins, dict):
+        show_combined = bool(wins.get("combined", True))
+        show_disp = bool(wins.get("disparity", True))
+    else:
+        show_combined = True
+        show_disp = bool(preview_cfg.get("show_disparity", True))
+    return bool(show_disp or (show_stack_disp and show_combined))
 
 
 def _preview_tick(
@@ -403,7 +464,7 @@ def build_detector(cfg: dict):
     if kind == "dummy":
         return DummyCenterDetector(frac=float(d.get("frac", 0.2)))
     return UltralyticsYOLODetector(
-        model_path=d.get("model_path", "yolov8n.pt"),
+        model_path=d.get("model_path", "yolo11s.pt"),
         conf_threshold=float(d.get("conf", 0.25)),
         iou_threshold=float(d.get("iou", 0.45)),
         imgsz=d.get("imgsz", 640),
@@ -606,11 +667,19 @@ def run_session(cfg_path: Path) -> Path:
 
                 prim = pick_primary_box(dets)
                 if prim is None:
+                    disp_preview: np.ndarray | None = None
+                    disp_ms_no_box = 0.0
+                    if preview_enabled and _preview_needs_disparity_map(preview_cfg):
+                        t_pd = time.perf_counter()
+                        disp_preview = compute_disparity_map(
+                            gray_l, gray_r, sgbm, scale_down=scale_down
+                        )
+                        disp_ms_no_box = (time.perf_counter() - t_pd) * 1000.0
                     if preview_enabled:
                         if _preview_tick(
                             preview_cfg,
                             rect,
-                            None,
+                            disp_preview,
                             [],
                             idx,
                             preview_state,
@@ -631,7 +700,7 @@ def run_session(cfg_path: Path) -> Path:
                                 "label": "",
                                 "t_wall": time.perf_counter() - t0,
                                 "capture_ms": capture_ms,
-                                "disp_ms": 0,
+                                "disp_ms": disp_ms_no_box,
                                 "det_ms": det_ms,
                                 "det_conf": "",
                                 "box_x1": "",

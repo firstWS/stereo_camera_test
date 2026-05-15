@@ -19,7 +19,7 @@ class DetectorAdapter(ABC):
 class UltralyticsYOLODetector(DetectorAdapter):
     def __init__(
         self,
-        model_path: str = "yolov8n.pt",
+        model_path: str = "yolo11s.pt",
         conf_threshold: float = 0.25,
         iou_threshold: float = 0.45,
         imgsz: int | None = 640,
