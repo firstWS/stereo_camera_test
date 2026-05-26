@@ -1,0 +1,76 @@
+# Orbbec Gemini 335L 계열 RGB-D 예시 (repeatability_run, input.type: orbbec)
+# 필요: pip install pyorbbecsdk2 (import: pyorbbecsdk), 호스트에 Orbbec 드라이버/SDK
+
+input:
+  type: orbbec
+
+# 스테레오 YAML은 이 모드에서 사용하지 않음 (키만 두고 yaml 은 placeholder 로 둘 수 있음).
+calibration:
+  yaml: calibration/stereo_calib.yaml
+
+camera:
+  device_index: 0
+
+orbbec:
+  # 비우면 첫 번째 장치 / serial 과 동시 지정 불가 우선 순위는 serial > index
+  serial: ""
+  device_index: 0
+  align_depth_to_color: true
+  wait_for_frames_ms: 100
+  # 프로파일: null 이면 color/depth 각각 기본 프로파일
+  color_width: 1280
+  color_height: 800
+  color_fps: 30
+  depth_width: null
+  depth_height: null
+  depth_fps: null
+  # SDK depth_scale 적용 후에도 깊이가 mm 라면 아래처럼 0.001 곱해서 m 로 통일
+  depth_scale_additional: 1.0
+  depth_is_millimeters: true
+  # bbox 내 유효 깊이 비율이 이 값 미만이면 A 트랙 invalid
+  min_valid_depth_ratio: 0.03
+  roi_z_min_m: 0.05
+  roi_z_max_m: 40.0
+
+detector:
+  kind: yolo
+  model_path: yolo11s.pt
+  conf: 0.9
+  iou: 0.45
+  imgsz: 640
+  device: null
+
+apriltag_scale:
+  enabled: true
+  dictionary: APRILTAG_36H11
+  known_spacing_m: 1.0
+  tag_id_a: null
+  tag_id_b: null
+  sample_radius: 2
+  draw: true
+  # RGB-D 모드에서는 YOLO 깊이에 스케일을 곱하지 않음(검증 전용)
+  apply_scale_to_depth: false
+
+repeatability:
+  max_frames: 300
+  output_csv: out/repeatability_orbbec.csv
+  warmup_frames: 10
+  log_all_boxes: true
+  max_boxes_per_frame: 64
+
+preview:
+  enabled: true
+  scale: 0.5
+  window_autosize: true
+  wait_key_ms: 1
+  snapshot_dir: out/snapshots
+  disparity_percentile_smooth_alpha: 0.18
+  stack_disparity_below: false
+  combined_side_by_side_stereo: false
+  windows:
+    combined: true
+    disparity: true
+  titles:
+    merged: "stereo-3d-poc | RGB + depth"
+    combined: "stereo-3d-poc | RGB"
+    disparity: "stereo-3d-poc | depth (m)"

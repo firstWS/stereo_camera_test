@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
-Live / video repeatability logger: detection -> Track A (dense SGBM ROI) + Track B (sparse NCC)
-for each detected box (optional: primary only). Writes CSV for KPI summarization.
-Optional OpenCV preview windows (see YAML ``preview``).
+Live repeatability logger: stereo uses SGBM + ``Q`` and sparse NCC; Orbbec RGB-D uses
+aligned depth + intrinsics when ``input.type: orbbec``. CSV + optional OpenCV preview.
 """
 
 from __future__ import annotations
@@ -31,6 +30,9 @@ def _resolve_repo_path(value: str | Path | None) -> Path | None:
     p = Path(value)
     return p.resolve() if p.is_absolute() else (_REPO_ROOT / p).resolve()
 
+from apriltag_rgbd_validate import (  # noqa: E402
+    compute_apriltag_distance_validation_rgbd,
+)
 from apriltag_scale import (  # noqa: E402
     AprilTagScaleOutcome,
     compute_apriltag_metric_scale,
@@ -56,7 +58,7 @@ from detect import (  # noqa: E402
     pick_primary_box,
 )
 from stereo_types import BBox, StereoFrame  # noqa: E402
-from split_rectify import crop_to_calib_size, rectify_stereo_frame  # noqa: E402
+from rgbd_geometry import depth_estimate_rgbd_bbox, orbbec_sparse_stub  # noqa: E402
 
 _PREVIEW_REGISTERED: set[str] = set()
 
@@ -119,6 +121,54 @@ def _disparity_colormap_bgr(
                 hi = smooth_a * hi + (1.0 - smooth_a) * float(prev_hi)
             preview_state["_disp_vis_lo"] = lo
             preview_state["_disp_vis_hi"] = hi
+
+    if hi <= lo:
+        hi = lo + 1e-3
+    u = np.clip((d - lo) / (hi - lo), 0.0, 1.0)
+    u8 = (u * 255).astype(np.uint8)
+    u8[~mask] = 0
+    return cv2.applyColorMap(u8, cv2.COLORMAP_TURBO)
+
+
+def _depth_m_colormap_bgr(
+    depth_m: np.ndarray | None,
+    fallback_hw: tuple[int, int],
+    preview_cfg: dict[str, Any],
+    preview_state: dict[str, Any],
+) -> np.ndarray:
+    """Colormap for aligned depth in meters. Same stabilizer pattern as disparity preview."""
+    h, w = fallback_hw
+    color = np.zeros((h, w, 3), dtype=np.uint8)
+    if depth_m is None:
+        return color
+    d = depth_m.astype(np.float32)
+    mask = np.isfinite(d) & (d > float(preview_cfg.get("depth_vis_min_m", 0.05)))
+    if not np.any(mask):
+        return color
+
+    vmin_key = preview_cfg.get("depth_vis_min_m_clip")
+    vmax_key = preview_cfg.get("depth_vis_max_m_clip")
+    use_fixed = vmin_key is not None and vmax_key is not None
+
+    if use_fixed:
+        lo = float(vmin_key)
+        hi = float(vmax_key)
+        preview_state.pop("_depth_vis_lo", None)
+        preview_state.pop("_depth_vis_hi", None)
+    else:
+        p_lo = float(preview_cfg.get("depth_percentile_low", 5))
+        p_hi = float(preview_cfg.get("depth_percentile_high", 95))
+        lo = float(np.percentile(d[mask], p_lo))
+        hi = float(np.percentile(d[mask], p_hi))
+        smooth_a = float(preview_cfg.get("depth_percentile_smooth_alpha", 0.0))
+        if smooth_a > 0.0:
+            prev_lo = preview_state.get("_depth_vis_lo")
+            prev_hi = preview_state.get("_depth_vis_hi")
+            if prev_lo is not None and prev_hi is not None:
+                lo = smooth_a * lo + (1.0 - smooth_a) * float(prev_lo)
+                hi = smooth_a * hi + (1.0 - smooth_a) * float(prev_hi)
+            preview_state["_depth_vis_lo"] = lo
+            preview_state["_depth_vis_hi"] = hi
 
     if hi <= lo:
         hi = lo + 1e-3
@@ -226,12 +276,22 @@ def _annotate_left(
 
         est_a0, est_b0 = boxes_depths[0][1], boxes_depths[0][2]
         if est_a0 is not None and getattr(est_a0, "valid", False):
-            lines.append(f"[#0] A Z={est_a0.Z:.3f}  disp={est_a0.disparity:.2f}px")
+            disp_a = (
+                f"{est_a0.disparity:.2f}px"
+                if est_a0.disparity is not None
+                else "---"
+            )
+            lines.append(f"[#0] A Z={est_a0.Z:.3f}  disp={disp_a}")
         else:
             notes_a = getattr(est_a0, "notes", "") if est_a0 is not None else ""
             lines.append(f"[#0] A invalid {notes_a}"[:80])
         if est_b0 is not None and getattr(est_b0, "valid", False):
-            lines.append(f"[#0] B Z={est_b0.Z:.3f}  disp={est_b0.disparity:.2f}px")
+            disp_b = (
+                f"{est_b0.disparity:.2f}px"
+                if est_b0.disparity is not None
+                else "---"
+            )
+            lines.append(f"[#0] B Z={est_b0.Z:.3f}  disp={disp_b}")
         else:
             notes_b = getattr(est_b0, "notes", "") if est_b0 is not None else ""
             lines.append(f"[#0] B: {notes_b}"[:80])
@@ -349,6 +409,7 @@ def _preview_tick(
     stereo_pre_rectify: StereoFrame,
     overlay_left_bgr: np.ndarray | None = None,
     extra_lines: list[str] | None = None,
+    scalar_depth_m: np.ndarray | None = None,
 ) -> bool:
     """
     미리보기: **창 2개** — (1) ``preview.combined_side_by_side_stereo`` 가 참이면 정류 ``좌|우`` 가로 합성,
@@ -391,7 +452,10 @@ def _preview_tick(
 
     disp_color_full: np.ndarray | None = None
     if show_disp or (show_stack_disp and show_combined):
-        disp_color_full = _disparity_colormap_bgr(disparity, (hl, wl), preview_cfg, preview_state)
+        if scalar_depth_m is not None:
+            disp_color_full = _depth_m_colormap_bgr(scalar_depth_m, (hl, wl), preview_cfg, preview_state)
+        else:
+            disp_color_full = _disparity_colormap_bgr(disparity, (hl, wl), preview_cfg, preview_state)
 
     panels: list[tuple[np.ndarray, str]] = []
     # --- 예전 4창 구성 중 좌·우 단독 창 (비표시). LR 합성은 wt_combo 창에서만.
@@ -455,6 +519,11 @@ def _apriltag_extra_overlay(at: AprilTagScaleOutcome | None, enabled: bool) -> l
             f"APRIL ids={at.tag_ids} meas={at.measured_distance_m:.3f}m "
             f"tgt={at.known_spacing_m:.3f}m scale={at.scale:.4f}",
         ]
+    if at.measured_distance_m is not None:
+        return [
+            f"APRIL(rgbd) ids={at.tag_ids} meas={at.measured_distance_m:.3f}m "
+            f"tgt={at.known_spacing_m:.3f}m {at.notes}"[:140],
+        ]
     return [f"APRIL: {at.notes}"[:120]]
 
 
@@ -474,7 +543,288 @@ def build_detector(cfg: dict):
 
 def run_session(cfg_path: Path) -> Path:
     cfg = yaml.safe_load(Path(cfg_path).read_text(encoding="utf-8"))
+    inp = cfg.get("input") or {}
+    in_type = (inp.get("type") or "camera").lower()
+    if in_type == "orbbec":
+        return _run_session_orbbec(cfg_path, cfg)
+    return _run_session_stereo(cfg_path, cfg)
 
+
+def _run_session_orbbec(cfg_path: Path, cfg: dict) -> Path:
+    from orbbec_rgbd_capture import OrbbecRGBDCapture, placeholder_stereo_frames  # noqa: PLC0415
+
+    ob_cfg = cfg.get("orbbec")
+    if not isinstance(ob_cfg, dict):
+        raise SystemExit("orbbec: configuration block (mapping) is required for input.type: orbbec")
+
+    detector = build_detector(cfg)
+    rep = cfg.get("repeatability", {})
+    warmup = int(rep.get("warmup_frames", 10))
+    log_all_boxes = bool(rep.get("log_all_boxes", True))
+    max_boxes_per_frame = max(1, int(rep.get("max_boxes_per_frame", 64)))
+    preview_cfg = dict(cfg.get("preview") or {})
+    preview_enabled = bool(preview_cfg.get("enabled", False))
+    max_frames = int(rep.get("max_frames", 300))
+    out_csv = _resolve_repo_path(rep.get("output_csv", "out/repeatability_orbbec.csv"))
+    assert out_csv is not None
+    out_csv.parent.mkdir(parents=True, exist_ok=True)
+
+    at_cfg = cfg.get("apriltag_scale") or {}
+    apriltag_enabled = bool(at_cfg.get("enabled"))
+    apply_at_scale = apriltag_enabled and bool(at_cfg.get("apply_scale_to_depth", True))
+
+    z_min_roi = float(ob_cfg.get("roi_z_min_m", 0.05))
+    z_max_roi = float(ob_cfg.get("roi_z_max_m", 40.0))
+    min_valid_ratio = float(ob_cfg.get("min_valid_depth_ratio", 0.03))
+
+    cap = OrbbecRGBDCapture(ob_cfg)
+    cap.start()
+
+    preview_state: dict[str, Any] = {}
+    print(
+        f"Orbbec RGB-D CSV rows: {'all detections per frame' if log_all_boxes else 'primary (max-conf) only'} "
+        f"(max {max_boxes_per_frame} boxes/frame)."
+    )
+
+    if preview_enabled:
+        print(
+            "Preview: focus an OpenCV window — [Q]=quit session  |  "
+            "[S]=save PNG pair (RGB as left channel, dummy right)."
+        )
+        snap_root = _resolve_repo_path(preview_cfg.get("snapshot_dir", "out/snapshots"))
+        assert snap_root is not None
+        sess_dir = snap_root / datetime.now().strftime("%Y%m%d_%H%M%S")
+        sess_dir.mkdir(parents=True, exist_ok=True)
+        preview_state["snapshot_session_dir"] = sess_dir
+        preview_state["snap_seq"] = [0]
+        print(f"  wait_key_ms={preview_cfg.get('wait_key_ms', 1)}  max_frames={max_frames}")
+        print(f"  snapshot session: {sess_dir}")
+
+    fieldnames = [
+        "frame_idx",
+        "det_idx",
+        "class_id",
+        "label",
+        "t_wall",
+        "capture_ms",
+        "disp_ms",
+        "det_ms",
+        "det_conf",
+        "box_x1",
+        "box_y1",
+        "box_x2",
+        "box_y2",
+        "ref_u",
+        "ref_v",
+        "A_valid",
+        "A_X",
+        "A_Y",
+        "A_Z",
+        "A_disp",
+        "A_valid_ratio",
+        "B_valid",
+        "B_X",
+        "B_Y",
+        "B_Z",
+        "B_disp",
+        "B_notes",
+        "apriltag_scale",
+        "apriltag_meas_m",
+        "apriltag_tag_ids",
+        "apriltag_note",
+    ]
+
+    t0 = time.perf_counter()
+    try:
+        with out_csv.open("w", newline="", encoding="utf-8") as f:
+            w = csv.DictWriter(f, fieldnames=fieldnames)
+            w.writeheader()
+
+            idx = 0
+            while idx < max_frames:
+                t_cap0 = time.perf_counter()
+                ok, fr = cap.read_rgbd()
+                capture_ms = (time.perf_counter() - t_cap0) * 1000.0
+                if not ok or fr is None:
+                    continue
+
+                rgb = fr.bgr
+                depth_m = fr.depth_m
+                K = fr.K
+                gray = cv2.cvtColor(rgb, cv2.COLOR_BGR2GRAY)
+                placeholder_l, placeholder_r = placeholder_stereo_frames(rgb)
+                frame_stereo = StereoFrame(left_bgr=placeholder_l, right_bgr=placeholder_r)
+                rect = frame_stereo
+
+                t_det0 = time.perf_counter()
+                dets = detector.predict(rgb)
+                det_ms = (time.perf_counter() - t_det0) * 1000.0
+
+                t_depth0 = time.perf_counter()
+                at_outcome: AprilTagScaleOutcome | None = None
+                left_vis_bgr: np.ndarray | None = None
+                if apriltag_enabled:
+                    draw_tags = bool(at_cfg.get("draw", True))
+                    if draw_tags:
+                        left_vis_bgr = rgb.copy()
+                    at_outcome = compute_apriltag_distance_validation_rgbd(
+                        gray,
+                        depth_m,
+                        K,
+                        dictionary=str(at_cfg.get("dictionary", "APRILTAG_36H11")),
+                        known_spacing_m=float(at_cfg.get("known_spacing_m", 1.0)),
+                        tag_id_a=at_cfg.get("tag_id_a"),
+                        tag_id_b=at_cfg.get("tag_id_b"),
+                        sample_radius=int(at_cfg.get("sample_radius", 2)),
+                        z_min_m=float(at_cfg.get("min_depth_m", z_min_roi)),
+                        z_max_m=float(at_cfg.get("max_depth_m", z_max_roi)),
+                        draw_on_bgr=left_vis_bgr if draw_tags else None,
+                    )
+
+                prim = pick_primary_box(dets)
+                if prim is None:
+                    disp_ms_track = (time.perf_counter() - t_depth0) * 1000.0
+                    if preview_enabled:
+                        if _preview_tick(
+                            preview_cfg,
+                            rect,
+                            None,
+                            [],
+                            idx,
+                            preview_state,
+                            frame_stereo,
+                            overlay_left_bgr=left_vis_bgr,
+                            extra_lines=_apriltag_extra_overlay(at_outcome, apriltag_enabled),
+                            scalar_depth_m=depth_m
+                            if (_preview_needs_disparity_map(preview_cfg))
+                            else None,
+                        ):
+                            break
+                    if idx >= warmup:
+                        w.writerow(
+                            {
+                                "frame_idx": idx,
+                                "det_idx": "",
+                                "class_id": "",
+                                "label": "",
+                                "t_wall": time.perf_counter() - t0,
+                                "capture_ms": capture_ms,
+                                "disp_ms": disp_ms_track,
+                                "det_ms": det_ms,
+                                "det_conf": "",
+                                "box_x1": "",
+                                "box_y1": "",
+                                "box_x2": "",
+                                "box_y2": "",
+                                "ref_u": "",
+                                "ref_v": "",
+                                "A_valid": False,
+                                "A_X": "",
+                                "A_Y": "",
+                                "A_Z": "",
+                                "A_disp": "",
+                                "A_valid_ratio": "",
+                                "B_valid": False,
+                                "B_X": "",
+                                "B_Y": "",
+                                "B_Z": "",
+                                "B_disp": "",
+                                "B_notes": "no_detection",
+                                **_apriltag_csv_fields(at_outcome, apriltag_enabled),
+                            }
+                        )
+                    idx += 1
+                    continue
+
+                if log_all_boxes:
+                    boxes = sorted(dets.boxes, key=lambda b: -b.confidence)[:max_boxes_per_frame]
+                else:
+                    boxes = [prim]
+
+                rows_payload: list[tuple[BBox, int, Any, Any]] = []
+                for bi, bbox in enumerate(boxes):
+                    est_a_i = depth_estimate_rgbd_bbox(
+                        depth_m,
+                        bbox,
+                        K,
+                        min_valid_ratio=min_valid_ratio,
+                        z_min_m=z_min_roi,
+                        z_max_m=z_max_roi,
+                    )
+                    est_b_i = orbbec_sparse_stub()
+                    if apply_at_scale and at_outcome is not None and at_outcome.scale is not None:
+                        est_a_i = scale_depth_estimate(est_a_i, at_outcome.scale)
+                        est_b_i = scale_depth_estimate(est_b_i, at_outcome.scale)
+                    rows_payload.append((bbox, bi, est_a_i, est_b_i))
+
+                disp_ms_track = (time.perf_counter() - t_depth0) * 1000.0
+                apr_lines = _apriltag_extra_overlay(at_outcome, apriltag_enabled)
+                boxes_depths = [(b, ea, eb) for b, _, ea, eb in rows_payload]
+
+                if preview_enabled:
+                    if _preview_tick(
+                        preview_cfg,
+                        rect,
+                        None,
+                        boxes_depths,
+                        idx,
+                        preview_state,
+                        frame_stereo,
+                        overlay_left_bgr=left_vis_bgr,
+                        extra_lines=apr_lines,
+                        scalar_depth_m=depth_m,
+                    ):
+                        break
+
+                if idx >= warmup:
+                    at_csv = _apriltag_csv_fields(at_outcome, apriltag_enabled)
+                    for bbox, bi, est_a_i, est_b_i in rows_payload:
+                        ru, rv = bbox.bottom_center
+                        w.writerow(
+                            {
+                                "frame_idx": idx,
+                                "det_idx": bi,
+                                "class_id": bbox.class_id,
+                                "label": bbox.label or "",
+                                "t_wall": time.perf_counter() - t0,
+                                "capture_ms": capture_ms,
+                                "disp_ms": disp_ms_track,
+                                "det_ms": det_ms,
+                                "det_conf": bbox.confidence,
+                                "box_x1": bbox.xyxy[0],
+                                "box_y1": bbox.xyxy[1],
+                                "box_x2": bbox.xyxy[2],
+                                "box_y2": bbox.xyxy[3],
+                                "ref_u": ru,
+                                "ref_v": rv,
+                                "A_valid": est_a_i.valid,
+                                "A_X": est_a_i.X if est_a_i.valid else "",
+                                "A_Y": est_a_i.Y if est_a_i.valid else "",
+                                "A_Z": est_a_i.Z if est_a_i.valid else "",
+                                "A_disp": "",
+                                "A_valid_ratio": est_a_i.valid_pixel_ratio
+                                if est_a_i.valid_pixel_ratio is not None
+                                else "",
+                                "B_valid": est_b_i.valid,
+                                "B_X": est_b_i.X if est_b_i.valid else "",
+                                "B_Y": est_b_i.Y if est_b_i.valid else "",
+                                "B_Z": est_b_i.Z if est_b_i.valid else "",
+                                "B_disp": est_b_i.disparity if est_b_i.disparity is not None else "",
+                                "B_notes": est_b_i.notes,
+                                **at_csv,
+                            }
+                        )
+                idx += 1
+    finally:
+        if preview_enabled:
+            cv2.destroyAllWindows()
+            _preview_reset_registered()
+        cap.release()
+
+    return out_csv
+
+
+def _run_session_stereo(cfg_path: Path, cfg: dict) -> Path:
     calib_yaml = cfg.get("calibration", {}).get("yaml")
     if not calib_yaml:
         raise SystemExit("calibration.yaml missing in config")

@@ -3,3 +3,6 @@ numpy>=1.24.0
 PyYAML>=6.0
 ultralytics>=8.0.0
 torch>=2.0.0
+
+# Optional: Orbbec RGB-D (input.type: orbbec). Install per vendor docs, then e.g.
+# Orbbec RGB-D (import name: pyorbbecsdk): pip install pyorbbecsdk2

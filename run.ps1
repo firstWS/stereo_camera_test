@@ -7,12 +7,14 @@
   .\run.ps1 -Setup
   .\run.ps1 -Full
   .\run.ps1 -ImageFolder
+  .\run.ps1 -Orbbec
   .\run.ps1 -Config configs\default.yaml
 #>
 param(
     [switch]$Setup,
     [switch]$Full,
     [switch]$ImageFolder,
+    [switch]$Orbbec,
     [string]$Config = ""
 )
 
@@ -25,6 +27,9 @@ Set-Location $RepoRoot
 if ([string]::IsNullOrWhiteSpace($Config)) {
     if ($ImageFolder) {
         $Config = "configs\image_folder.yaml"
+    }
+    elseif ($Orbbec) {
+        $Config = "configs\orbbec_gemini.yaml"
     }
     elseif ($Full) {
         $Config = "configs\default.yaml"

@@ -2,7 +2,7 @@
 
 
 
-USB 스테레오(SBS) 캡처 → 보정·정류 → SGBM 시차 → 검출(YOLO) → 3D 추정 실험 코드입니다.
+USB 스테레오(SBS) 캡처 → 보정·정류 → SGBM 시차 → 검출(YOLO) → 3D 추정 **또는** Orbbec SDK RGB-D 정렬 깊이 → YOLO → median depth 역투영 실험 코드입니다.
 
 
 
@@ -32,7 +32,7 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned   # 한 번만, 스크립트
 
 - `.\run.ps1 -ImageFolder` — 좌·우 이미지 폴더(`configs/image_folder.yaml`)
 
-- `.\run.ps1 -Config configs\default.yaml` — 임의 설정 파일
+- `.\run.ps1 -Orbbec` — Orbbec RGB-D (`configs/orbbec_gemini.yaml`; `pip install pyorbbecsdk2` 및 호스트 SDK 필요)
 
 
 
@@ -53,6 +53,29 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned   # 한 번만, 스크립트
 `configs/image_folder.yaml`에는 **`preview.image_folder_hold_until_quit: true`** 가 기본입니다. 한 장만 넣어도 창이 바로 닫히지 않고, **종료는 `Q`**, 다음 쌍으로 넘어가려면 **`Space`** 또는 **`n`** 입니다.
 
 창 구성: **2개** — `windows.combined` 이 켜지면 기본적으로 정류 **좌안 RGB 한 장**(YOLO와 같은 뷰), `windows.disparity` 가 켜지면 **시차 맵** 한 창(둘 다 켜는 것이 기본). 예전처럼 **L|R 가로 합성** 을 보이려면 `preview.combined_side_by_side_stereo: true`. 예전 4창에서 **좌·우 단독 창만** 코드에 주석으로 남기고 비활성화했습니다. 한 창에 세로로 붙이려면 `preview.stack_disparity_below: true`. 미리보기 창 크기는 `preview.scale`(기본 `0.5`면 가로·세로 절반, `1`이면 표시 해상도 원본), `window_autosize` 참고. 시차 깜빡임 완화는 `disparity_percentile_smooth_alpha` 또는 `disparity_vis_min` / `max`.
+
+
+
+## Orbbec RGB-D (Gemini 등)
+
+
+`input.type: orbbec` 일 때 스테레오 YAML·정류 맵 없이 장치 기본 intrinsics 및 **depth→color 정렬**(소프트웨어 `AlignFilter`)을 사용합니다.
+
+1. [Orbbec pyorbbecsdk](https://github.com/orbbec/pyorbbecsdk) 문서대로 호스트 드라이버/SDK 후 PyPI에서 `pip install pyorbbecsdk2`(코드에서는 `import pyorbbecsdk`).
+2. 예시 설정: [`configs/orbbec_gemini.yaml`](configs/orbbec_gemini.yaml).
+3. `orbbec` 블록에서 해상도·FPS·시리얼·`depth_is_millimeters`·`depth_scale_additional` 등을 장치에 맞게 조정하세요.
+
+AprilTag: RGB-D 모드에서는 **거리 검증 전용**(측정 거리 vs `known_spacing_m`, `apriltag_scale` 기본값으로 `scale` 을 비워 둠). `apply_scale_to_depth: false` 권장. 스테레오 모드에서는 기존대로 `Q`·disparity 로 스케일을 구할 수 있습니다.
+
+미리보기 두 번째 창은 **깊이(m) 컬러맵**(Turbo); 옵션 키 `depth_vis_*` / `depth_percentile_*` 는 [`experiments/repeatability_run.py`](experiments/repeatability_run.py) 의 `_depth_m_colormap_bgr` 참고.
+
+
+
+```powershell
+
+.\.venv\Scripts\python.exe experiments\repeatability_run.py --config configs\orbbec_gemini.yaml
+
+```
 
 
 
