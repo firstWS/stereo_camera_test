@@ -38,6 +38,14 @@ from apriltag_scale import (  # noqa: E402
     compute_apriltag_metric_scale,
     scale_depth_estimate,
 )
+from apriltag_world import (  # noqa: E402
+    AprilTagWorldConfig,
+    AprilTagWorldResult,
+    WorldPointEstimate,
+    build_apriltag_world_config,
+    estimate_apriltag_world,
+    world_point_from_camera_estimate,
+)
 from calibration_repository import load_calibration  # noqa: E402
 from capture import (
     CaptureAdapter,
@@ -189,10 +197,10 @@ _BOX_COLORS_BGR = [
 
 def _annotate_left(
     left_bgr: np.ndarray,
-    boxes_depths: list[tuple[BBox, Any, Any]],
+    boxes_depths: list[tuple[Any, ...]],
     extra_lines: list[str] | None = None,
 ) -> np.ndarray:
-    """Draw every ``(BBox, est_a, est_b)``: boxes, centered ``X,Y,Z`` (camera m), summary #0."""
+    """Draw boxes plus camera/world coordinates, when available."""
     vis = left_bgr.copy()
     overlay_bgr = (0, 0, 255)
     lines: list[str] = []
@@ -200,14 +208,16 @@ def _annotate_left(
     if not boxes_depths:
         lines.append("no detection")
     else:
-        for i, (bbox, est_a, est_b) in enumerate(boxes_depths):
+        for i, item in enumerate(boxes_depths):
+            bbox, est_a, est_b = item[:3]
+            world_est = item[3] if len(item) > 3 else None
             x1, y1, x2, y2 = map(int, bbox.xyxy)
             color = _BOX_COLORS_BGR[i % len(_BOX_COLORS_BGR)]
             cx_f = (x1 + x2) * 0.5
             cy_f = (y1 + y2) * 0.5
             cv2.rectangle(vis, (x1, y1), (x2, y2), color, 2)
             bcx = int((x1 + x2) * 0.5)
-            bcy = int(y2)
+            bcy = int((y1 + y2) * 0.5)
             cv2.circle(vis, (bcx, bcy), 4, (0, 255, 255), -1, lineType=cv2.LINE_AA)
 
             lbl = (bbox.label or "?").replace("\n", " ")[:20]
@@ -216,6 +226,8 @@ def _annotate_left(
                 tip.append(f"A_Z={est_a.Z:.2f}")
             if est_b is not None and getattr(est_b, "valid", False):
                 tip.append(f"B_Z={est_b.Z:.2f}")
+            if world_est is not None and getattr(world_est, "valid", False):
+                tip.append(f"WZ={world_est.Z:.2f}")
             ty = max(14, y1 - 8)
             cv2.putText(
                 vis,
@@ -229,7 +241,11 @@ def _annotate_left(
             )
             fs, tk = 1.35, 3
             font_face = cv2.FONT_HERSHEY_DUPLEX
-            if est_a is not None and getattr(est_a, "valid", False):
+            if world_est is not None and getattr(world_est, "valid", False):
+                xyz_line = (
+                    f"W X={world_est.X:.2f}  Y={world_est.Y:.2f}  Z={world_est.Z:.2f} m"
+                )
+            elif est_a is not None and getattr(est_a, "valid", False):
                 xyz_line = (
                     f"X={est_a.X:.2f}  Y={est_a.Y:.2f}  Z={est_a.Z:.2f} m"
                 )
@@ -275,6 +291,12 @@ def _annotate_left(
             )
 
         est_a0, est_b0 = boxes_depths[0][1], boxes_depths[0][2]
+        world0 = boxes_depths[0][3] if len(boxes_depths[0]) > 3 else None
+        if world0 is not None and getattr(world0, "valid", False):
+            src = ",".join(str(x) for x in getattr(world0, "source_tag_ids", ()))
+            lines.append(f"[#0] W=({world0.X:.3f},{world0.Y:.3f},{world0.Z:.3f}) tags={src}"[:100])
+        elif world0 is not None:
+            lines.append(f"[#0] W invalid {getattr(world0, 'notes', '')}"[:100])
         if est_a0 is not None and getattr(est_a0, "valid", False):
             disp_a = (
                 f"{est_a0.disparity:.2f}px"
@@ -403,7 +425,7 @@ def _preview_tick(
     preview_cfg: dict[str, Any],
     rect: StereoFrame,
     disparity: np.ndarray | None,
-    boxes_depths: list[tuple[BBox, Any, Any]],
+    boxes_depths: list[tuple[Any, ...]],
     loop_idx: int,
     preview_state: dict[str, Any],
     stereo_pre_rectify: StereoFrame,
@@ -527,17 +549,82 @@ def _apriltag_extra_overlay(at: AprilTagScaleOutcome | None, enabled: bool) -> l
     return [f"APRIL: {at.notes}"[:120]]
 
 
+_WORLD_CSV_FIELDNAMES = [
+    "world_valid",
+    "world_X",
+    "world_Y",
+    "world_Z",
+    "world_source_tag_ids",
+    "world_tag_count",
+    "world_note",
+]
+
+
+def _world_csv_fields(
+    world: WorldPointEstimate | None,
+    pose: AprilTagWorldResult | None,
+    enabled: bool,
+) -> dict[str, Any]:
+    if not enabled:
+        return {name: "" for name in _WORLD_CSV_FIELDNAMES}
+
+    tag_count: int | str = len(pose.observations) if pose is not None else 0
+    if world is not None and world.valid:
+        return {
+            "world_valid": True,
+            "world_X": world.X,
+            "world_Y": world.Y,
+            "world_Z": world.Z,
+            "world_source_tag_ids": ",".join(str(x) for x in world.source_tag_ids),
+            "world_tag_count": tag_count,
+            "world_note": world.notes[:200],
+        }
+
+    note = ""
+    if world is not None:
+        note = world.notes
+    elif pose is not None:
+        note = pose.notes
+    return {
+        "world_valid": False,
+        "world_X": "",
+        "world_Y": "",
+        "world_Z": "",
+        "world_source_tag_ids": "",
+        "world_tag_count": tag_count,
+        "world_note": note[:200],
+    }
+
+
+def _apriltag_world_extra_overlay(
+    pose: AprilTagWorldResult | None,
+    enabled: bool,
+) -> list[str]:
+    if not enabled:
+        return []
+    if pose is None:
+        return ["WORLD: not computed"]
+    if not pose.observations:
+        return [f"WORLD: {pose.notes}"[:120]]
+    ids = ",".join(str(x) for x in pose.visible_tag_ids)
+    err = min(obs.reprojection_error_px for obs in pose.observations)
+    return [f"WORLD tags={ids} reproj={err:.2f}px"[:120]]
+
+
 def build_detector(cfg: dict):
     d = cfg.get("detector", {})
     kind = (d.get("kind") or "yolo").lower()
     if kind == "dummy":
         return DummyCenterDetector(frac=float(d.get("frac", 0.2)))
+    class_ids_raw = d.get("class_ids", d.get("classes"))
+    class_ids = [int(x) for x in class_ids_raw] if class_ids_raw else None
     return UltralyticsYOLODetector(
         model_path=d.get("model_path", "yolo11s.pt"),
         conf_threshold=float(d.get("conf", 0.25)),
         iou_threshold=float(d.get("iou", 0.45)),
         imgsz=d.get("imgsz", 640),
         device=d.get("device"),
+        class_ids=class_ids,
     )
 
 
@@ -572,6 +659,8 @@ def _run_session_orbbec(cfg_path: Path, cfg: dict) -> Path:
     at_cfg = cfg.get("apriltag_scale") or {}
     apriltag_enabled = bool(at_cfg.get("enabled"))
     apply_at_scale = apriltag_enabled and bool(at_cfg.get("apply_scale_to_depth", True))
+    atw_cfg: AprilTagWorldConfig = build_apriltag_world_config(cfg.get("apriltag_world") or {})
+    atw_enabled = atw_cfg.enabled
 
     z_min_roi = float(ob_cfg.get("roi_z_min_m", 0.05))
     z_max_roi = float(ob_cfg.get("roi_z_max_m", 40.0))
@@ -579,12 +668,18 @@ def _run_session_orbbec(cfg_path: Path, cfg: dict) -> Path:
 
     cap = OrbbecRGBDCapture(ob_cfg)
     cap.start()
+    print("Orbbec pipeline started (preview opens after the first synchronized RGB+depth frame).")
 
     preview_state: dict[str, Any] = {}
     print(
         f"Orbbec RGB-D CSV rows: {'all detections per frame' if log_all_boxes else 'primary (max-conf) only'} "
         f"(max {max_boxes_per_frame} boxes/frame)."
     )
+    if atw_enabled:
+        print(
+            f"AprilTag world coordinates enabled: tags={sorted(atw_cfg.tags)} "
+            f"tag_size={atw_cfg.tag_size_m:.3f}m"
+        )
 
     if preview_enabled:
         print(
@@ -628,6 +723,7 @@ def _run_session_orbbec(cfg_path: Path, cfg: dict) -> Path:
         "B_Z",
         "B_disp",
         "B_notes",
+        *_WORLD_CSV_FIELDNAMES,
         "apriltag_scale",
         "apriltag_meas_m",
         "apriltag_tag_ids",
@@ -641,12 +737,32 @@ def _run_session_orbbec(cfg_path: Path, cfg: dict) -> Path:
             w.writeheader()
 
             idx = 0
+            read_fail_streak = 0
+            first_frame_logged = False
             while idx < max_frames:
                 t_cap0 = time.perf_counter()
                 ok, fr = cap.read_rgbd()
                 capture_ms = (time.perf_counter() - t_cap0) * 1000.0
                 if not ok or fr is None:
+                    read_fail_streak += 1
+                    if read_fail_streak == 1:
+                        print(
+                            "Waiting for synchronized RGB+depth frame "
+                            "(no OpenCV window until the first good frame)..."
+                        )
+                    elif read_fail_streak in (50, 200, 500) or (
+                        read_fail_streak > 500 and read_fail_streak % 1000 == 0
+                    ):
+                        print(
+                            f"  still waiting ({read_fail_streak} read attempts, "
+                            f"{time.perf_counter() - t0:.0f}s elapsed)"
+                        )
                     continue
+                if not first_frame_logged:
+                    if read_fail_streak:
+                        print(f"First RGB-D frame after {read_fail_streak} failed read(s).")
+                    first_frame_logged = True
+                read_fail_streak = 0
 
                 rgb = fr.bgr
                 depth_m = fr.depth_m
@@ -662,6 +778,7 @@ def _run_session_orbbec(cfg_path: Path, cfg: dict) -> Path:
 
                 t_depth0 = time.perf_counter()
                 at_outcome: AprilTagScaleOutcome | None = None
+                atw_result: AprilTagWorldResult | None = None
                 left_vis_bgr: np.ndarray | None = None
                 if apriltag_enabled:
                     draw_tags = bool(at_cfg.get("draw", True))
@@ -680,6 +797,15 @@ def _run_session_orbbec(cfg_path: Path, cfg: dict) -> Path:
                         z_max_m=float(at_cfg.get("max_depth_m", z_max_roi)),
                         draw_on_bgr=left_vis_bgr if draw_tags else None,
                     )
+                if atw_enabled:
+                    if atw_cfg.draw and left_vis_bgr is None:
+                        left_vis_bgr = rgb.copy()
+                    atw_result = estimate_apriltag_world(
+                        gray,
+                        K,
+                        atw_cfg,
+                        draw_on_bgr=left_vis_bgr if atw_cfg.draw else None,
+                    )
 
                 prim = pick_primary_box(dets)
                 if prim is None:
@@ -694,7 +820,10 @@ def _run_session_orbbec(cfg_path: Path, cfg: dict) -> Path:
                             preview_state,
                             frame_stereo,
                             overlay_left_bgr=left_vis_bgr,
-                            extra_lines=_apriltag_extra_overlay(at_outcome, apriltag_enabled),
+                            extra_lines=(
+                                _apriltag_extra_overlay(at_outcome, apriltag_enabled)
+                                + _apriltag_world_extra_overlay(atw_result, atw_enabled)
+                            ),
                             scalar_depth_m=depth_m
                             if (_preview_needs_disparity_map(preview_cfg))
                             else None,
@@ -730,6 +859,7 @@ def _run_session_orbbec(cfg_path: Path, cfg: dict) -> Path:
                                 "B_Z": "",
                                 "B_disp": "",
                                 "B_notes": "no_detection",
+                                **_world_csv_fields(None, atw_result, atw_enabled),
                                 **_apriltag_csv_fields(at_outcome, apriltag_enabled),
                             }
                         )
@@ -741,7 +871,7 @@ def _run_session_orbbec(cfg_path: Path, cfg: dict) -> Path:
                 else:
                     boxes = [prim]
 
-                rows_payload: list[tuple[BBox, int, Any, Any]] = []
+                rows_payload: list[tuple[BBox, int, Any, Any, WorldPointEstimate | None]] = []
                 for bi, bbox in enumerate(boxes):
                     est_a_i = depth_estimate_rgbd_bbox(
                         depth_m,
@@ -755,11 +885,19 @@ def _run_session_orbbec(cfg_path: Path, cfg: dict) -> Path:
                     if apply_at_scale and at_outcome is not None and at_outcome.scale is not None:
                         est_a_i = scale_depth_estimate(est_a_i, at_outcome.scale)
                         est_b_i = scale_depth_estimate(est_b_i, at_outcome.scale)
-                    rows_payload.append((bbox, bi, est_a_i, est_b_i))
+                    world_i = (
+                        world_point_from_camera_estimate(est_a_i, atw_result)
+                        if atw_enabled
+                        else None
+                    )
+                    rows_payload.append((bbox, bi, est_a_i, est_b_i, world_i))
 
                 disp_ms_track = (time.perf_counter() - t_depth0) * 1000.0
-                apr_lines = _apriltag_extra_overlay(at_outcome, apriltag_enabled)
-                boxes_depths = [(b, ea, eb) for b, _, ea, eb in rows_payload]
+                apr_lines = (
+                    _apriltag_extra_overlay(at_outcome, apriltag_enabled)
+                    + _apriltag_world_extra_overlay(atw_result, atw_enabled)
+                )
+                boxes_depths = [(b, ea, eb, wp) for b, _, ea, eb, wp in rows_payload]
 
                 if preview_enabled:
                     if _preview_tick(
@@ -778,8 +916,8 @@ def _run_session_orbbec(cfg_path: Path, cfg: dict) -> Path:
 
                 if idx >= warmup:
                     at_csv = _apriltag_csv_fields(at_outcome, apriltag_enabled)
-                    for bbox, bi, est_a_i, est_b_i in rows_payload:
-                        ru, rv = bbox.bottom_center
+                    for bbox, bi, est_a_i, est_b_i, world_i in rows_payload:
+                        ru, rv = bbox.center
                         w.writerow(
                             {
                                 "frame_idx": idx,
@@ -811,6 +949,7 @@ def _run_session_orbbec(cfg_path: Path, cfg: dict) -> Path:
                                 "B_Z": est_b_i.Z if est_b_i.valid else "",
                                 "B_disp": est_b_i.disparity if est_b_i.disparity is not None else "",
                                 "B_notes": est_b_i.notes,
+                                **_world_csv_fields(world_i, atw_result, atw_enabled),
                                 **at_csv,
                             }
                         )
@@ -918,6 +1057,8 @@ def _run_session_stereo(cfg_path: Path, cfg: dict) -> Path:
 
     at_cfg = cfg.get("apriltag_scale") or {}
     apriltag_enabled = bool(at_cfg.get("enabled"))
+    atw_cfg: AprilTagWorldConfig = build_apriltag_world_config(cfg.get("apriltag_world") or {})
+    atw_enabled = atw_cfg.enabled
 
     preview_state: dict[str, Any] = {}
 
@@ -927,6 +1068,11 @@ def _run_session_stereo(cfg_path: Path, cfg: dict) -> Path:
         f"Depth CSV rows: {'all detections per frame' if log_all_boxes else 'primary (max-conf) only'} "
         f"(max {max_boxes_per_frame} boxes/frame)."
     )
+    if atw_enabled:
+        print(
+            f"AprilTag world coordinates enabled: tags={sorted(atw_cfg.tags)} "
+            f"tag_size={atw_cfg.tag_size_m:.3f}m"
+        )
 
     if preview_enabled:
         print(
@@ -974,6 +1120,7 @@ def _run_session_stereo(cfg_path: Path, cfg: dict) -> Path:
         "B_Z",
         "B_disp",
         "B_notes",
+        *_WORLD_CSV_FIELDNAMES,
         "apriltag_scale",
         "apriltag_meas_m",
         "apriltag_tag_ids",
@@ -1071,6 +1218,7 @@ def _run_session_stereo(cfg_path: Path, cfg: dict) -> Path:
                                 "B_Z": "",
                                 "B_disp": "",
                                 "B_notes": "no_detection",
+                                **_world_csv_fields(None, None, atw_enabled),
                                 **_apriltag_csv_fields(None, apriltag_enabled),
                             }
                         )
@@ -1087,6 +1235,7 @@ def _run_session_stereo(cfg_path: Path, cfg: dict) -> Path:
                 disp_ms = (time.perf_counter() - t_disp0) * 1000.0
 
                 at_outcome: AprilTagScaleOutcome | None = None
+                atw_result: AprilTagWorldResult | None = None
                 left_vis_bgr: np.ndarray | None = None
                 if apriltag_enabled:
                     draw_tags = bool(at_cfg.get("draw", True))
@@ -1104,23 +1253,41 @@ def _run_session_stereo(cfg_path: Path, cfg: dict) -> Path:
                         min_disp=float(at_cfg.get("min_disp", 1.0)),
                         draw_on_bgr=left_vis_bgr if draw_tags else None,
                     )
+                if atw_enabled:
+                    if atw_cfg.draw and left_vis_bgr is None:
+                        left_vis_bgr = left.copy()
+                    K_rect_left = calib.P1[:3, :3].astype(np.float64)
+                    atw_result = estimate_apriltag_world(
+                        gray_l,
+                        K_rect_left,
+                        atw_cfg,
+                        draw_on_bgr=left_vis_bgr if atw_cfg.draw else None,
+                    )
 
                 apply_at_scale = apriltag_enabled and bool(at_cfg.get("apply_scale_to_depth", True))
 
-                rows_payload: list[tuple[BBox, int, Any, Any]] = []
+                rows_payload: list[tuple[BBox, int, Any, Any, WorldPointEstimate | None]] = []
                 for bi, bbox in enumerate(boxes):
                     est_a_i = depth_dense_track_a(disp, bbox, Q, min_disp=1.0)
-                    ru, rv = bbox.bottom_center
+                    ru, rv = bbox.center
                     est_b_i = depth_sparse_track_b(
                         gray_l, gray_r, ru, rv, Q, tpl_r, max_d, min_d
                     )
                     if apply_at_scale and at_outcome is not None and at_outcome.scale is not None:
                         est_a_i = scale_depth_estimate(est_a_i, at_outcome.scale)
                         est_b_i = scale_depth_estimate(est_b_i, at_outcome.scale)
-                    rows_payload.append((bbox, bi, est_a_i, est_b_i))
+                    world_i = (
+                        world_point_from_camera_estimate(est_a_i, atw_result)
+                        if atw_enabled
+                        else None
+                    )
+                    rows_payload.append((bbox, bi, est_a_i, est_b_i, world_i))
 
-                apr_lines = _apriltag_extra_overlay(at_outcome, apriltag_enabled)
-                boxes_depths = [(b, ea, eb) for b, _, ea, eb in rows_payload]
+                apr_lines = (
+                    _apriltag_extra_overlay(at_outcome, apriltag_enabled)
+                    + _apriltag_world_extra_overlay(atw_result, atw_enabled)
+                )
+                boxes_depths = [(b, ea, eb, wp) for b, _, ea, eb, wp in rows_payload]
 
                 if preview_enabled:
                     if _preview_tick(
@@ -1143,8 +1310,8 @@ def _run_session_stereo(cfg_path: Path, cfg: dict) -> Path:
 
                 if idx >= warmup:
                     at_csv = _apriltag_csv_fields(at_outcome, apriltag_enabled)
-                    for bbox, bi, est_a_i, est_b_i in rows_payload:
-                        ru, rv = bbox.bottom_center
+                    for bbox, bi, est_a_i, est_b_i, world_i in rows_payload:
+                        ru, rv = bbox.center
                         w.writerow(
                             {
                                 "frame_idx": idx,
@@ -1176,6 +1343,7 @@ def _run_session_stereo(cfg_path: Path, cfg: dict) -> Path:
                                 "B_Z": est_b_i.Z if est_b_i.valid else "",
                                 "B_disp": est_b_i.disparity if est_b_i.disparity is not None else "",
                                 "B_notes": est_b_i.notes,
+                                **_world_csv_fields(world_i, atw_result, atw_enabled),
                                 **at_csv,
                             }
                         )

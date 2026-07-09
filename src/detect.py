@@ -24,6 +24,7 @@ class UltralyticsYOLODetector(DetectorAdapter):
         iou_threshold: float = 0.45,
         imgsz: int | None = 640,
         device: str | None = None,
+        class_ids: list[int] | None = None,
     ) -> None:
         from ultralytics import YOLO
 
@@ -32,6 +33,7 @@ class UltralyticsYOLODetector(DetectorAdapter):
         self.iou_threshold = iou_threshold
         self.imgsz = imgsz
         self.device = device
+        self.class_ids = class_ids
 
     def predict(self, bgr: np.ndarray) -> DetectionResult:
         h, w = bgr.shape[:2]
@@ -44,6 +46,8 @@ class UltralyticsYOLODetector(DetectorAdapter):
             kwargs["imgsz"] = self.imgsz
         if self.device is not None:
             kwargs["device"] = self.device
+        if self.class_ids:
+            kwargs["classes"] = self.class_ids
         results = self._model.predict(bgr, **kwargs)
         boxes: list[BBox] = []
         if not results or results[0].boxes is None or len(results[0].boxes) == 0:
@@ -96,5 +100,5 @@ def box_to_reference(dets: DetectionResult, box_index: int = 0) -> ReferencePoin
     if box_index >= len(dets.boxes):
         return None
     b = dets.boxes[box_index]
-    u, v = b.bottom_center
+    u, v = b.center
     return ReferencePoint(u=u, v=v, source_bbox_index=box_index)

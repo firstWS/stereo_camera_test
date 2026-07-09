@@ -175,7 +175,17 @@ class OrbbecRGBDCapture:
         config.enable_stream(depth_profile)
 
         config.set_frame_aggregate_output_mode(OBFrameAggregateOutputMode.FULL_FRAME_REQUIRE)
-        pipeline.start(config)
+        try:
+            pipeline.start(config)
+        except Exception as e:
+            msg = str(e)
+            if "already been started" in msg.lower():
+                raise SystemExit(
+                    "Orbbec: camera is already in use (another python.exe or Orbbec Viewer?).\n"
+                    "Close the other app or end the previous run.ps1 -Orbbec with Ctrl+C, then retry.\n"
+                    f"SDK error: {msg}"
+                ) from e
+            raise
 
         intr = color_profile.get_intrinsic()
         self._K = _intrinsic_to_K(intr)

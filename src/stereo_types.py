@@ -14,6 +14,11 @@ class BBox:
     label: str | None = None
 
     @property
+    def center(self) -> tuple[float, float]:
+        x1, y1, x2, y2 = self.xyxy
+        return ((x1 + x2) * 0.5, (y1 + y2) * 0.5)
+
+    @property
     def bottom_center(self) -> tuple[float, float]:
         x1, y1, x2, y2 = self.xyxy
         return ((x1 + x2) * 0.5, y2)

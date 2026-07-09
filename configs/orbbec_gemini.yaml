@@ -35,21 +35,42 @@ orbbec:
 detector:
   kind: yolo
   model_path: yolo11s.pt
-  conf: 0.9
+  conf: 0.4
   iou: 0.45
   imgsz: 640
   device: null
+  # COCO class id 41 = cup. 임시로 컵만 추적.
+  class_ids: [41]
 
 apriltag_scale:
   enabled: true
   dictionary: APRILTAG_36H11
-  known_spacing_m: 1.0
-  tag_id_a: null
-  tag_id_b: null
+  # id0=(1.0, 2.0, 0.0), id1=(2.0, 1.8, 0.0) 사이 거리
+  known_spacing_m: 1.0198039027
+  tag_id_a: 0
+  tag_id_b: 1
   sample_radius: 2
   draw: true
   # RGB-D 모드에서는 YOLO 깊이에 스케일을 곱하지 않음(검증 전용)
   apply_scale_to_depth: false
+
+apriltag_world:
+  enabled: true
+  dictionary: APRILTAG_36H11
+  # 검은 AprilTag 정사각형 바깥 한 변 길이. 종이 여백 포함 크기가 아님.
+  tag_size_m: 0.135
+  # 현재 가정: 벽면은 월드 Z=0 평면이고, 태그 앞면은 월드 +Z 방향을 바라봄.
+  # 태그 상단은 월드 +Y 방향, 좌표는 태그 중심 기준.
+  front_normal: "+Z"
+  top_direction: "+Y"
+  draw: true
+  tags:
+    0:
+      position: [1.0, 2.0, 0.0]
+      yaw_deg: 0.0
+    1:
+      position: [2.0, 1.8, 0.0]
+      yaw_deg: 0.0
 
 repeatability:
   max_frames: 300
