@@ -1,0 +1,71 @@
+object_anchor:
+  id: tissue_box_01
+  type: cuboid
+  mode: cuboid_8point
+  unit: meter
+
+  size:
+    width: 0.235
+    depth: 0.115
+    height: 0.110
+
+  coordinate_system:
+    origin: object_center
+    x_axis: right
+    y_axis: front_to_back
+    z_axis: bottom_to_top
+
+  # Measure this after fixing the box in the test space.
+  # Required later for T_world_object; not needed by the synthetic PnP test.
+  world_pose: null
+
+  keypoints_3d:
+    - id: 0
+      name: front_top_left
+      xyz: [-0.1175, -0.0575, 0.0550]
+    - id: 1
+      name: front_top_right
+      xyz: [0.1175, -0.0575, 0.0550]
+    - id: 2
+      name: front_bottom_right
+      xyz: [0.1175, -0.0575, -0.0550]
+    - id: 3
+      name: front_bottom_left
+      xyz: [-0.1175, -0.0575, -0.0550]
+    - id: 4
+      name: back_top_left
+      xyz: [0.1175, 0.0575, 0.0550]
+    - id: 5
+      name: back_top_right
+      xyz: [-0.1175, 0.0575, 0.0550]
+    - id: 6
+      name: back_bottom_right
+      xyz: [-0.1175, 0.0575, -0.0550]
+    - id: 7
+      name: back_bottom_left
+      xyz: [0.1175, 0.0575, -0.0550]
+
+  skeleton:
+    - [0, 1]
+    - [1, 2]
+    - [2, 3]
+    - [3, 0]
+    - [4, 5]
+    - [5, 6]
+    - [6, 7]
+    - [7, 4]
+    - [0, 5]
+    - [1, 4]
+    - [2, 7]
+    - [3, 6]
+
+  pose_estimation:
+    confidence_threshold: 0.50
+    min_visibility: 1
+    min_correspondences: 4
+    min_inliers: 4
+    ransac_reprojection_error_px: 8.0
+    max_mean_reprojection_error_px: 5.0
+    ransac_confidence: 0.99
+    ransac_iterations: 100
+    refine_lm: true

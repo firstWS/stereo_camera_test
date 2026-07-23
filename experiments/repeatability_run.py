@@ -30,6 +30,40 @@ def _resolve_repo_path(value: str | Path | None) -> Path | None:
     p = Path(value)
     return p.resolve() if p.is_absolute() else (_REPO_ROOT / p).resolve()
 
+
+def _resolve_writable_csv(path: Path) -> Path:
+    """
+    Pick a CSV path we can open for writing.
+
+    If the configured file is locked (Excel, another run), fall back to a timestamped sibling.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    def _probe(target: Path) -> bool:
+        try:
+            with target.open("w", newline="", encoding="utf-8"):
+                pass
+            return True
+        except PermissionError:
+            return False
+
+    if _probe(path):
+        return path
+
+    alt = path.with_name(f"{path.stem}_{datetime.now().strftime('%Y%m%d_%H%M%S')}{path.suffix}")
+    print(
+        f"Cannot write {path} (locked by another app or python.exe?). "
+        f"Using fallback: {alt}",
+        flush=True,
+    )
+    if _probe(alt):
+        return alt
+
+    raise SystemExit(
+        f"Cannot write CSV: {path}\n"
+        "Close Excel/editors viewing the CSV and end other repeatability_run sessions, then retry."
+    )
+
 from apriltag_rgbd_validate import (  # noqa: E402
     compute_apriltag_distance_validation_rgbd,
 )
@@ -64,6 +98,19 @@ from detect import (  # noqa: E402
     DummyCenterDetector,
     UltralyticsYOLODetector,
     pick_primary_box,
+)
+from object_anchor_runtime import (  # noqa: E402
+    ObjectAnchorFrameResult,
+    build_optional_object_anchor_runtime,
+)
+from object_anchor_capture import (  # noqa: E402
+    ObjectAnchorCaptureSession,
+    ObjectAnchorCaptureSettings,
+)
+from object_anchor_world import (  # noqa: E402
+    TRANSFORM_FORMULA,
+    ObjectAnchorWorldTracker,
+    build_world_settings,
 )
 from stereo_types import BBox, StereoFrame  # noqa: E402
 from rgbd_geometry import depth_estimate_rgbd_bbox, orbbec_sparse_stub  # noqa: E402
@@ -351,15 +398,20 @@ def _vstack_match_width(top_bgr: np.ndarray, bottom_bgr: np.ndarray) -> np.ndarr
     return np.vstack([top_bgr, bottom_bgr])
 
 
-def _snapshot_image_folder_pair(
+def _snapshot_session(
     dest_dir: Path,
     seq: list[int],
     frame_loop_idx: int,
     stereo_pre_rectify: StereoFrame,
+    *,
+    overlay_rgb: np.ndarray | None = None,
+    overlay_depth: np.ndarray | None = None,
+    overlay_merged: np.ndarray | None = None,
 ) -> None:
     """
-    Saves cropped (calib-sized) left/right BGR for ``input.type: image_folder`` replay.
-    Same basename under dest_dir/left and dest_dir/right.
+    Saves left/right BGR (replay / raw) plus optional preview overlays (annotated RGB, depth map).
+
+    Same basename ``{seq:04d}_f{frame:05d}.png`` under each subfolder.
     """
     left_dir = dest_dir / "left"
     right_dir = dest_dir / "right"
@@ -372,7 +424,35 @@ def _snapshot_image_folder_pair(
     rp = right_dir / name
     cv2.imwrite(str(lp), stereo_pre_rectify.left_bgr)
     cv2.imwrite(str(rp), stereo_pre_rectify.right_bgr)
-    print(f"Saved image_folder pair #{n}: {lp.name} → {left_dir} / {right_dir}")
+    saved: list[str] = [f"left/{name}", f"right/{name}"]
+
+    if overlay_rgb is not None:
+        rgb_dir = dest_dir / "overlay_rgb"
+        rgb_dir.mkdir(parents=True, exist_ok=True)
+        cv2.imwrite(str(rgb_dir / name), overlay_rgb)
+        saved.append(f"overlay_rgb/{name}")
+    if overlay_depth is not None:
+        depth_dir = dest_dir / "overlay_depth"
+        depth_dir.mkdir(parents=True, exist_ok=True)
+        cv2.imwrite(str(depth_dir / name), overlay_depth)
+        saved.append(f"overlay_depth/{name}")
+    if overlay_merged is not None:
+        merged_dir = dest_dir / "overlay_merged"
+        merged_dir.mkdir(parents=True, exist_ok=True)
+        cv2.imwrite(str(merged_dir / name), overlay_merged)
+        saved.append(f"overlay_merged/{name}")
+
+    print(f"Saved snapshot #{n}: {', '.join(saved)}")
+
+
+def _snapshot_image_folder_pair(
+    dest_dir: Path,
+    seq: list[int],
+    frame_loop_idx: int,
+    stereo_pre_rectify: StereoFrame,
+) -> None:
+    """Legacy alias: left/right only (no overlay)."""
+    _snapshot_session(dest_dir, seq, frame_loop_idx, stereo_pre_rectify)
 
 
 def _preview_image_folder_hold_spin(
@@ -386,11 +466,11 @@ def _preview_image_folder_hold_spin(
 
     Returns True if user pressed Q (quit entire session).
     Returns False if Space or n/N (advance to next stereo pair).
-    S saves another PNG pair without advancing.
+    S saves another snapshot (left/right + preview overlays) without advancing.
     """
     poll_ms = max(1, int(preview_cfg.get("image_folder_hold_poll_ms", 50)))
     print(
-        "[hold] Space or n = next pair  |  Q = quit session  |  S = save left/right PNG again",
+        "[hold] Space or n = next pair  |  Q = quit session  |  S = save snapshot again",
         flush=True,
     )
     while True:
@@ -403,7 +483,15 @@ def _preview_image_folder_hold_spin(
             sess = preview_state.get("snapshot_session_dir")
             sq = preview_state.get("snap_seq")
             if isinstance(sess, Path) and isinstance(sq, list):
-                _snapshot_image_folder_pair(sess, sq, loop_idx, stereo_pre_rectify)
+                _snapshot_session(
+                    sess,
+                    sq,
+                    loop_idx,
+                    stereo_pre_rectify,
+                    overlay_rgb=preview_state.get("last_overlay_rgb"),
+                    overlay_depth=preview_state.get("last_overlay_depth"),
+                    overlay_merged=preview_state.get("last_overlay_merged"),
+                )
             else:
                 print("Snapshots disabled (no snapshot session directory).")
 
@@ -439,7 +527,7 @@ def _preview_tick(
 
     ``preview.stack_disparity_below: true`` 이면 (1)(2)를 세로 한 장으로 합쳐 단일 창(호환용).
 
-    Keys: Q quit; S saves ``left/`` + ``right/`` PNG pair (calib-cropped, pre-rectify).
+    Keys: Q quit; S saves ``left/``, ``right/``, and preview overlays (``overlay_rgb/``, etc.).
 
     Returns True if user pressed Q (quit session). After return, callers may invoke
     ``_preview_image_folder_hold_spin`` when ``preview.image_folder_hold_until_quit`` is set.
@@ -479,6 +567,7 @@ def _preview_tick(
         else:
             disp_color_full = _disparity_colormap_bgr(disparity, (hl, wl), preview_cfg, preview_state)
 
+    merged_full: np.ndarray | None = None
     panels: list[tuple[np.ndarray, str]] = []
     # --- 예전 4창 구성 중 좌·우 단독 창 (비표시). LR 합성은 wt_combo 창에서만.
     # wt_left = "stereo-3d-poc | left (rectified)"
@@ -487,10 +576,9 @@ def _preview_tick(
     #     panels.append((_preview_scale_visual(overlay_left_full, scale), wt_left))
     # if show_right:
     #     panels.append((_preview_scale_visual(rect.right_bgr.copy(), scale), wt_right))
-    # [S] 스냅샷은 창과 무관하게 crop된 stereo 좌·우 PNG 저장.
     if show_combined and show_disp and show_stack_disp and disp_color_full is not None:
-        merged = _vstack_match_width(combined_visual, disp_color_full)
-        panels.append((_preview_scale_visual(merged, scale), wt_merged))
+        merged_full = _vstack_match_width(combined_visual, disp_color_full)
+        panels.append((_preview_scale_visual(merged_full, scale), wt_merged))
     elif show_combined and show_disp and disp_color_full is not None:
         panels.append((_preview_scale_visual(combined_visual, scale), wt_combo))
         panels.append((_preview_scale_visual(disp_color_full, scale), wt_disp))
@@ -498,6 +586,10 @@ def _preview_tick(
         panels.append((_preview_scale_visual(combined_visual, scale), wt_combo))
     elif show_disp and disp_color_full is not None:
         panels.append((_preview_scale_visual(disp_color_full, scale), wt_disp))
+
+    preview_state["last_overlay_rgb"] = combined_visual if show_combined else None
+    preview_state["last_overlay_depth"] = disp_color_full if show_disp else None
+    preview_state["last_overlay_merged"] = merged_full
 
     for img, title in panels:
         _preview_ensure_named(title, preview_cfg, scale)
@@ -511,7 +603,15 @@ def _preview_tick(
         sess = preview_state.get("snapshot_session_dir")
         sq = preview_state.get("snap_seq")
         if isinstance(sess, Path) and isinstance(sq, list):
-            _snapshot_image_folder_pair(sess, sq, loop_idx, stereo_pre_rectify)
+            _snapshot_session(
+                sess,
+                sq,
+                loop_idx,
+                stereo_pre_rectify,
+                overlay_rgb=preview_state.get("last_overlay_rgb"),
+                overlay_depth=preview_state.get("last_overlay_depth"),
+                overlay_merged=preview_state.get("last_overlay_merged"),
+            )
         else:
             print("Snapshots disabled (no snapshot session directory).")
     return False
@@ -628,16 +728,245 @@ def build_detector(cfg: dict):
     )
 
 
-def run_session(cfg_path: Path) -> Path:
+def _describe_rgbd_calibration(
+    rgb: np.ndarray,
+    depth_m: np.ndarray,
+    K: np.ndarray,
+    dist_coeffs: np.ndarray,
+) -> list[str]:
+    h, w = rgb.shape[:2]
+    dh, dw = depth_m.shape[:2]
+    fx, fy = float(K[0, 0]), float(K[1, 1])
+    cx, cy = float(K[0, 2]), float(K[1, 2])
+    issues: list[str] = []
+    if (dh, dw) != (h, w):
+        issues.append(f"rgb_depth_shape_mismatch rgb={w}x{h} depth={dw}x{dh}")
+    if not np.all(np.isfinite(K)) or fx <= 0.0 or fy <= 0.0:
+        issues.append("invalid_rgb_intrinsic")
+    if not (0.0 <= cx < w and 0.0 <= cy < h):
+        issues.append(f"principal_point_outside_rgb cx={cx:.2f} cy={cy:.2f}")
+    valid_depth = depth_m[np.isfinite(depth_m) & (depth_m > 0.0)]
+    median_depth = float(np.median(valid_depth)) if valid_depth.size else float("nan")
+    if not valid_depth.size:
+        issues.append("no_valid_depth")
+    elif median_depth > 100.0:
+        issues.append(f"depth_probably_not_meters median={median_depth:.3f}")
+    distortion = np.asarray(dist_coeffs, dtype=np.float64).reshape(-1)
+    status = "OK" if not issues else "WARN " + "; ".join(issues)
+    return [
+        f"RGB calibration: {w}x{h} fx={fx:.3f} fy={fy:.3f} cx={cx:.3f} cy={cy:.3f}",
+        f"RGB distortion ({len(distortion)}): "
+        + np.array2string(distortion, precision=5, suppress_small=True),
+        f"RGB-depth alignment: rgb={w}x{h} depth={dw}x{dh}; depth median={median_depth:.3f}m",
+        f"RGB-D calibration check: {status}",
+    ]
+
+
+def run_session(
+    cfg_path: Path,
+    *,
+    register_object_anchor: bool = False,
+    capture_type: str | None = None,
+    capture_count: int = 100,
+    capture_interval: float = 1.0,
+) -> Path:
+    if capture_type is not None and register_object_anchor:
+        raise SystemExit("Capture mode cannot be combined with Object Anchor registration")
     cfg = yaml.safe_load(Path(cfg_path).read_text(encoding="utf-8"))
     inp = cfg.get("input") or {}
     in_type = (inp.get("type") or "camera").lower()
     if in_type == "orbbec":
-        return _run_session_orbbec(cfg_path, cfg)
+        if capture_type is not None:
+            return _run_orbbec_capture_session(
+                cfg,
+                capture_type=capture_type,
+                capture_count=capture_count,
+                capture_interval=capture_interval,
+            )
+        return _run_session_orbbec(
+            cfg_path, cfg, register_object_anchor=register_object_anchor
+        )
+    if capture_type is not None:
+        raise SystemExit("Object Anchor capture mode requires input.type: orbbec")
     return _run_session_stereo(cfg_path, cfg)
 
 
-def _run_session_orbbec(cfg_path: Path, cfg: dict) -> Path:
+def _draw_capture_status(
+    bgr: np.ndarray,
+    *,
+    capture_type: str,
+    saved_count: int,
+    target_count: int,
+    interval_seconds: float,
+    last_filename: str,
+) -> np.ndarray:
+    overlay = bgr.copy()
+    lines = (
+        f"CAPTURE MODE: {capture_type.upper()}",
+        f"Saved: {saved_count} / {target_count}",
+        f"Interval: {interval_seconds:g} sec",
+        f"Last file: {last_filename}",
+        "Q / ESC: stop",
+    )
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    scale = 0.8
+    thickness = 2
+    line_height = 34
+    panel_width = min(bgr.shape[1] - 20, 780)
+    cv2.rectangle(overlay, (10, 10), (10 + panel_width, 30 + line_height * len(lines)), (0, 0, 0), -1)
+    for index, line in enumerate(lines):
+        color = (80, 255, 80) if index < 2 else (255, 255, 255)
+        cv2.putText(
+            overlay,
+            line[:100],
+            (24, 42 + index * line_height),
+            font,
+            scale,
+            color,
+            thickness,
+            cv2.LINE_AA,
+        )
+    return overlay
+
+
+def _capture_window_closed(title: str) -> bool:
+    try:
+        return cv2.getWindowProperty(title, cv2.WND_PROP_VISIBLE) < 1.0
+    except cv2.error:
+        return False
+
+
+def _run_orbbec_capture_session(
+    cfg: dict[str, Any],
+    *,
+    capture_type: str,
+    capture_count: int,
+    capture_interval: float,
+) -> Path:
+    """Dedicated timed raw-RGB collection path; it does not enter the 300-frame run."""
+    from orbbec_rgbd_capture import OrbbecRGBDCapture  # noqa: PLC0415
+
+    ob_cfg = cfg.get("orbbec")
+    if not isinstance(ob_cfg, dict):
+        raise SystemExit("orbbec: configuration block is required for capture mode")
+    try:
+        settings = ObjectAnchorCaptureSettings(
+            capture_type=capture_type,
+            target_count=int(capture_count),
+            interval_seconds=float(capture_interval),
+        )
+    except ValueError as exc:
+        raise SystemExit(f"Invalid capture settings: {exc}") from exc
+
+    object_anchor_raw = cfg.get("object_anchor") or {}
+    object_anchor_runtime, object_anchor_status = build_optional_object_anchor_runtime(
+        object_anchor_raw, repo_root=_REPO_ROOT
+    )
+    model_path = ""
+    if object_anchor_runtime is not None:
+        resolved_model = _resolve_repo_path(object_anchor_raw.get("model_path"))
+        model_path = str(resolved_model) if resolved_model is not None else ""
+    atw_cfg: AprilTagWorldConfig = build_apriltag_world_config(cfg.get("apriltag_world") or {})
+
+    cap = OrbbecRGBDCapture(ob_cfg)
+    cap.start()
+    capture_root = _resolve_repo_path("data/object_anchor_capture")
+    assert capture_root is not None
+    session = ObjectAnchorCaptureSession(
+        capture_root,
+        settings,
+        camera_serial=cap.serial_number,
+        loaded_model_path=model_path,
+    )
+    title = f"stereo-3d-poc | capture {capture_type}"
+    preview_cfg = dict(cfg.get("preview") or {})
+    preview_scale = float(preview_cfg.get("scale", 1.0))
+    startup_timeout_s = max(0.0, float(ob_cfg.get("startup_timeout_s", 20.0)))
+    start_time = time.perf_counter()
+    read_failures = 0
+    print(
+        f"Object Anchor capture started: type={capture_type} target={capture_count} "
+        f"interval={capture_interval:g}s"
+    )
+    print(f"  images: {session.image_dir}")
+    if capture_type == "negative":
+        print(f"  empty labels: {session.label_dir}")
+    print(f"  manifest: {session.manifest_path}")
+    print(f"  Object Anchor metadata: {object_anchor_status}")
+
+    try:
+        _preview_ensure_named(title, preview_cfg, preview_scale)
+        while not session.complete:
+            ok, frame = cap.read_rgbd()
+            if not ok or frame is None:
+                read_failures += 1
+                if (
+                    session.saved_count == 0
+                    and startup_timeout_s > 0.0
+                    and time.perf_counter() - start_time >= startup_timeout_s
+                ):
+                    raise SystemExit(
+                        "Orbbec: no synchronized RGB-D frame within "
+                        f"{startup_timeout_s:.1f}s during capture."
+                    )
+                continue
+
+            raw_bgr = frame.bgr
+            gray = cv2.cvtColor(raw_bgr, cv2.COLOR_BGR2GRAY)
+            apriltag_result = (
+                estimate_apriltag_world(gray, frame.K, atw_cfg)
+                if atw_cfg.enabled
+                else None
+            )
+            anchor_result = (
+                object_anchor_runtime.process(raw_bgr, frame.K, frame.dist_coeffs)
+                if object_anchor_runtime is not None
+                else None
+            )
+            detection = anchor_result.detection if anchor_result is not None else None
+            now = time.monotonic()
+            saved = session.save(
+                raw_bgr,
+                now_monotonic=now,
+                object_anchor_detected=detection is not None,
+                object_anchor_confidence=detection.score if detection is not None else None,
+                apriltag_detected=bool(apriltag_result and apriltag_result.observations),
+            )
+            if saved is not None:
+                print(f"  saved {session.saved_count}/{settings.target_count}: {saved.name}")
+
+            display = _draw_capture_status(
+                raw_bgr,
+                capture_type=capture_type,
+                saved_count=session.saved_count,
+                target_count=settings.target_count,
+                interval_seconds=settings.interval_seconds,
+                last_filename=session.last_filename,
+            )
+            cv2.imshow(title, _preview_scale_visual(display, preview_scale))
+            key = cv2.waitKey(max(1, int(preview_cfg.get("wait_key_ms", 1)))) & 0xFF
+            if key in (ord("q"), ord("Q"), 27) or _capture_window_closed(title):
+                print(f"Capture stopped early at {session.saved_count}/{settings.target_count}.")
+                break
+    except KeyboardInterrupt:
+        print(f"Capture interrupted at {session.saved_count}/{settings.target_count}.")
+    finally:
+        cap.release()
+        cv2.destroyAllWindows()
+        _preview_reset_registered()
+
+    if session.complete:
+        print(f"Capture complete: exactly {session.saved_count} image(s) saved.")
+    print(f"Manifest preserved at {session.manifest_path}")
+    return session.manifest_path
+
+
+def _run_session_orbbec(
+    cfg_path: Path,
+    cfg: dict,
+    *,
+    register_object_anchor: bool = False,
+) -> Path:
     from orbbec_rgbd_capture import OrbbecRGBDCapture, placeholder_stereo_frames  # noqa: PLC0415
 
     ob_cfg = cfg.get("orbbec")
@@ -654,17 +983,45 @@ def _run_session_orbbec(cfg_path: Path, cfg: dict) -> Path:
     max_frames = int(rep.get("max_frames", 300))
     out_csv = _resolve_repo_path(rep.get("output_csv", "out/repeatability_orbbec.csv"))
     assert out_csv is not None
-    out_csv.parent.mkdir(parents=True, exist_ok=True)
+    out_csv = _resolve_writable_csv(out_csv)
 
     at_cfg = cfg.get("apriltag_scale") or {}
     apriltag_enabled = bool(at_cfg.get("enabled"))
     apply_at_scale = apriltag_enabled and bool(at_cfg.get("apply_scale_to_depth", True))
     atw_cfg: AprilTagWorldConfig = build_apriltag_world_config(cfg.get("apriltag_world") or {})
     atw_enabled = atw_cfg.enabled
+    object_anchor_runtime, object_anchor_status = build_optional_object_anchor_runtime(
+        cfg.get("object_anchor"), repo_root=_REPO_ROOT
+    )
+    object_anchor_raw = cfg.get("object_anchor") or {}
+    world_tracker: ObjectAnchorWorldTracker | None = None
+    if object_anchor_runtime is not None and atw_enabled:
+        world_raw = object_anchor_raw.get("world_validation") or {}
+        if bool(world_raw.get("enabled", True)):
+            registration_path = _resolve_repo_path(
+                object_anchor_raw.get("registration_file")
+                or "out/object_anchor_calibration/tissue_box_01_world_pose.yaml"
+            )
+            session_root = _resolve_repo_path(
+                world_raw.get("session_dir", "out/object_anchor_world")
+            )
+            assert registration_path is not None and session_root is not None
+            world_session = session_root / datetime.now().strftime("%Y%m%d_%H%M%S")
+            world_tracker = ObjectAnchorWorldTracker(
+                object_id=object_anchor_runtime.config.object_id,
+                keypoint_names=tuple(
+                    keypoint.name for keypoint in object_anchor_runtime.config.keypoints
+                ),
+                settings=build_world_settings(world_raw),
+                registration_file=registration_path,
+                session_dir=world_session,
+                start_registration=register_object_anchor,
+            )
 
     z_min_roi = float(ob_cfg.get("roi_z_min_m", 0.05))
     z_max_roi = float(ob_cfg.get("roi_z_max_m", 40.0))
     min_valid_ratio = float(ob_cfg.get("min_valid_depth_ratio", 0.03))
+    startup_timeout_s = max(0.0, float(ob_cfg.get("startup_timeout_s", 20.0)))
 
     cap = OrbbecRGBDCapture(ob_cfg)
     cap.start()
@@ -680,11 +1037,25 @@ def _run_session_orbbec(cfg_path: Path, cfg: dict) -> Path:
             f"AprilTag world coordinates enabled: tags={sorted(atw_cfg.tags)} "
             f"tag_size={atw_cfg.tag_size_m:.3f}m"
         )
+    if object_anchor_runtime is None:
+        print(f"Object Anchor camera-pose debug disabled: {object_anchor_status}")
+    else:
+        print(
+            f"Object Anchor camera-pose debug enabled: "
+            f"{object_anchor_runtime.config.object_id} camera_pose_only="
+            f"{object_anchor_runtime.settings.camera_pose_only}"
+        )
+    if world_tracker is not None:
+        print("Object Anchor AprilTag world validation enabled (comparison only).")
+        print(f"  transform: {TRANSFORM_FORMULA}")
+        print(f"  frame log: {world_tracker.csv_path}")
+        print(f"  registration file: {world_tracker.registration_file}")
+        print(f"  registration active: {world_tracker.registration is not None}")
 
     if preview_enabled:
         print(
             "Preview: focus an OpenCV window — [Q]=quit session  |  "
-            "[S]=save PNG pair (RGB as left channel, dummy right)."
+            "[S]=save snapshot (left/right + overlay_rgb/overlay_depth)."
         )
         snap_root = _resolve_repo_path(preview_cfg.get("snapshot_dir", "out/snapshots"))
         assert snap_root is not None
@@ -739,12 +1110,16 @@ def _run_session_orbbec(cfg_path: Path, cfg: dict) -> Path:
             idx = 0
             read_fail_streak = 0
             first_frame_logged = False
+            calibration_logged = False
+            previous_frame_time: float | None = None
+            fps_ema = 0.0
             while idx < max_frames:
                 t_cap0 = time.perf_counter()
                 ok, fr = cap.read_rgbd()
                 capture_ms = (time.perf_counter() - t_cap0) * 1000.0
                 if not ok or fr is None:
                     read_fail_streak += 1
+                    startup_elapsed = time.perf_counter() - t0
                     if read_fail_streak == 1:
                         print(
                             "Waiting for synchronized RGB+depth frame "
@@ -757,16 +1132,38 @@ def _run_session_orbbec(cfg_path: Path, cfg: dict) -> Path:
                             f"  still waiting ({read_fail_streak} read attempts, "
                             f"{time.perf_counter() - t0:.0f}s elapsed)"
                         )
+                    if (
+                        not first_frame_logged
+                        and startup_timeout_s > 0.0
+                        and startup_elapsed >= startup_timeout_s
+                    ):
+                        raise SystemExit(
+                            "Orbbec: no synchronized RGB-D frame within "
+                            f"{startup_timeout_s:.1f}s. Close Orbbec Viewer/other camera "
+                            "processes, reconnect USB power, and run "
+                            "scripts/orbbec_smoke_test.py."
+                        )
                     continue
                 if not first_frame_logged:
                     if read_fail_streak:
                         print(f"First RGB-D frame after {read_fail_streak} failed read(s).")
                     first_frame_logged = True
                 read_fail_streak = 0
+                frame_now = time.perf_counter()
+                if previous_frame_time is not None:
+                    instantaneous_fps = 1.0 / max(frame_now - previous_frame_time, 1e-6)
+                    fps_ema = instantaneous_fps if fps_ema <= 0.0 else 0.90 * fps_ema + 0.10 * instantaneous_fps
+                previous_frame_time = frame_now
 
                 rgb = fr.bgr
                 depth_m = fr.depth_m
                 K = fr.K
+                if not calibration_logged:
+                    for line in _describe_rgbd_calibration(
+                        rgb, depth_m, K, fr.dist_coeffs
+                    ):
+                        print(line)
+                    calibration_logged = True
                 gray = cv2.cvtColor(rgb, cv2.COLOR_BGR2GRAY)
                 placeholder_l, placeholder_r = placeholder_stereo_frames(rgb)
                 frame_stereo = StereoFrame(left_bgr=placeholder_l, right_bgr=placeholder_r)
@@ -779,6 +1176,8 @@ def _run_session_orbbec(cfg_path: Path, cfg: dict) -> Path:
                 t_depth0 = time.perf_counter()
                 at_outcome: AprilTagScaleOutcome | None = None
                 atw_result: AprilTagWorldResult | None = None
+                object_anchor_result: ObjectAnchorFrameResult | None = None
+                object_anchor_lines: list[str] = []
                 left_vis_bgr: np.ndarray | None = None
                 if apriltag_enabled:
                     draw_tags = bool(at_cfg.get("draw", True))
@@ -806,6 +1205,29 @@ def _run_session_orbbec(cfg_path: Path, cfg: dict) -> Path:
                         atw_cfg,
                         draw_on_bgr=left_vis_bgr if atw_cfg.draw else None,
                     )
+                if object_anchor_runtime is not None:
+                    object_anchor_result = object_anchor_runtime.process(
+                        rgb,
+                        K,
+                        fr.dist_coeffs,
+                        draw_on_bgr=left_vis_bgr,
+                    )
+                    left_vis_bgr = object_anchor_result.overlay_bgr
+                    object_anchor_lines = object_anchor_runtime.overlay_lines(
+                        object_anchor_result
+                    )
+                if world_tracker is not None:
+                    if left_vis_bgr is None:
+                        left_vis_bgr = rgb.copy()
+                    _, world_lines = world_tracker.process(
+                        frame_idx=idx,
+                        fps=fps_ema,
+                        apriltag_result=atw_result,
+                        anchor_result=object_anchor_result,
+                        raw_bgr=rgb,
+                        overlay_bgr=left_vis_bgr,
+                    )
+                    object_anchor_lines.extend(world_lines)
 
                 prim = pick_primary_box(dets)
                 if prim is None:
@@ -823,6 +1245,7 @@ def _run_session_orbbec(cfg_path: Path, cfg: dict) -> Path:
                             extra_lines=(
                                 _apriltag_extra_overlay(at_outcome, apriltag_enabled)
                                 + _apriltag_world_extra_overlay(atw_result, atw_enabled)
+                                + object_anchor_lines
                             ),
                             scalar_depth_m=depth_m
                             if (_preview_needs_disparity_map(preview_cfg))
@@ -896,6 +1319,7 @@ def _run_session_orbbec(cfg_path: Path, cfg: dict) -> Path:
                 apr_lines = (
                     _apriltag_extra_overlay(at_outcome, apriltag_enabled)
                     + _apriltag_world_extra_overlay(atw_result, atw_enabled)
+                    + object_anchor_lines
                 )
                 boxes_depths = [(b, ea, eb, wp) for b, _, ea, eb, wp in rows_payload]
 
@@ -959,6 +1383,11 @@ def _run_session_orbbec(cfg_path: Path, cfg: dict) -> Path:
             cv2.destroyAllWindows()
             _preview_reset_registered()
         cap.release()
+        if world_tracker is not None:
+            print("Object Anchor world statistics:")
+            print(yaml.safe_dump(world_tracker.summary(), sort_keys=False))
+            summary_path = world_tracker.close()
+            print(f"Object Anchor world summary: {summary_path}")
 
     return out_csv
 
@@ -1050,7 +1479,7 @@ def _run_session_stereo(cfg_path: Path, cfg: dict) -> Path:
     max_frames = int(rep.get("max_frames", 300))
     out_csv = _resolve_repo_path(rep.get("output_csv", "out/repeatability.csv"))
     assert out_csv is not None
-    out_csv.parent.mkdir(parents=True, exist_ok=True)
+    out_csv = _resolve_writable_csv(out_csv)
 
     maps = calib.ensure_maps()
     Q = calib.Q
@@ -1077,7 +1506,7 @@ def _run_session_stereo(cfg_path: Path, cfg: dict) -> Path:
     if preview_enabled:
         print(
             "Preview: focus an OpenCV window (Alt+Tab) — "
-            "[Q]=quit session  |  [S]=save left/right PNG pair (image_folder replay) under snapshots session."
+            "[Q]=quit session  |  [S]=save snapshot (left/right + overlay previews) under snapshots session."
         )
         if img_folder_hold and in_type in ("image_folder", "images"):
             print(
@@ -1361,9 +1790,23 @@ def _run_session_stereo(cfg_path: Path, cfg: dict) -> Path:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", type=Path, default=Path("configs/default.yaml"))
+    ap.add_argument(
+        "--register-object-anchor",
+        action="store_true",
+        help="Collect and save a robust AprilTag-referenced Object Anchor world pose.",
+    )
+    ap.add_argument("--capture-type", choices=("positive", "negative"))
+    ap.add_argument("--capture-count", type=int, default=100)
+    ap.add_argument("--capture-interval", type=float, default=1.0)
     args = ap.parse_args()
     cfg_path = args.config.resolve() if args.config.is_absolute() else (_REPO_ROOT / args.config).resolve()
-    out = run_session(cfg_path)
+    out = run_session(
+        cfg_path,
+        register_object_anchor=args.register_object_anchor,
+        capture_type=args.capture_type,
+        capture_count=args.capture_count,
+        capture_interval=args.capture_interval,
+    )
     print(f"Wrote {out}")
 
 

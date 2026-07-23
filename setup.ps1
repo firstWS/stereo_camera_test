@@ -9,11 +9,11 @@ function Test-PythonExe([string]$ExePath) {
         return $false
     }
     try {
-        $ver = & $ExePath --version 2>&1
+        $ver = & $ExePath -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>&1
         if ($LASTEXITCODE -ne 0) {
             return $false
         }
-        return $true
+        return ($ver | Select-Object -Last 1).Trim() -eq "3.12"
     }
     catch {
         return $false
@@ -48,7 +48,7 @@ function Find-PythonExe {
     }
 
     # Explicit version folders (common python.org layout)
-    foreach ($ver in @(314, 313, 312, 311, 310, 39)) {
+    foreach ($ver in @(312)) {
         $candidate = Join-Path $env:LOCALAPPDATA "Programs\Python\Python$ver\python.exe"
         $candidates.Add($candidate)
     }
@@ -106,14 +106,32 @@ Write-Host "Using: $pythonExe"
 & $pythonExe --version
 
 $venvPy = Join-Path $RepoRoot ".venv\Scripts\python.exe"
-if (-not (Test-Path $venvPy)) {
+$venvRoot = Join-Path $RepoRoot ".venv"
+if (-not (Test-PythonExe $venvPy)) {
+    if (Test-Path -LiteralPath $venvRoot) {
+        $resolvedVenv = (Resolve-Path -LiteralPath $venvRoot).Path
+        if (-not $resolvedVenv.StartsWith($RepoRoot + "\")) {
+            throw "Refusing to remove venv outside workspace: $resolvedVenv"
+        }
+        Write-Host "Removing broken/incompatible venv: $resolvedVenv" -ForegroundColor Yellow
+        Remove-Item -LiteralPath $resolvedVenv -Recurse -Force
+    }
     & $pythonExe -m venv "$RepoRoot\.venv"
 }
 
 & $venvPy -m pip install --upgrade pip
 & $venvPy -m pip install -r "$RepoRoot\requirements.txt"
 
-& $venvPy "$RepoRoot\scripts\create_placeholder_calibration.py"
+$calibrationPath = Join-Path $RepoRoot "calibration\stereo_calib.yaml"
+if (-not (Test-Path -LiteralPath $calibrationPath)) {
+    & $venvPy "$RepoRoot\scripts\create_placeholder_calibration.py"
+}
+else {
+    Write-Host "Keeping existing calibration: $calibrationPath"
+}
 & $venvPy "$RepoRoot\scripts\smoke_test.py"
+& $venvPy "$RepoRoot\scripts\verify_environment.py"
+& $venvPy -m pytest "$RepoRoot\tests" -q -p no:cacheprovider
+& $venvPy "$RepoRoot\scripts\synthetic_object_anchor_test.py"
 
 Write-Host "Setup OK. Live camera demo: .\run_demo.ps1"

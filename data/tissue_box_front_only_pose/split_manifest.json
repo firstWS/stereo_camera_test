@@ -1,0 +1,31 @@
+﻿{
+    "strategy":  "prefix-balanced; validation uses endpoint frames where possible",
+    "train":  [
+                  "tissue_F_002",
+                  "tissue_F_003",
+                  "tissue_F_004",
+                  "tissue_FDL_001",
+                  "tissue_FDL_002",
+                  "tissue_FDL_003",
+                  "tissue_FDR_001",
+                  "tissue_FDR_002",
+                  "tissue_FDR_003",
+                  "tissue_FDR_004",
+                  "tissue_FTL_001",
+                  "tissue_FTL_002",
+                  "tissue_FTL_003",
+                  "tissue_FTL_004",
+                  "tissue_FTR_001",
+                  "tissue_FTR_002",
+                  "tissue_FTR_003",
+                  "tissue_FTR_004"
+              ],
+    "val":  [
+                "tissue_F_001",
+                "tissue_F_005",
+                "tissue_FDL_004",
+                "tissue_FDR_005",
+                "tissue_FTL_005",
+                "tissue_FTR_005"
+            ]
+}

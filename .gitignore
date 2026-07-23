@@ -1,8 +1,11 @@
 .venv/
 __pycache__/
+.pytest_cache/
 *.py[cod]
 out/
+runs/
 *.csv
+models/**/*.pt
 yolov8*.pt
 yolo11*.pt
 calibration/stereo_calib.yaml

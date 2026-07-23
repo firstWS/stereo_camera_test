@@ -17,6 +17,8 @@ orbbec:
   device_index: 0
   align_depth_to_color: true
   wait_for_frames_ms: 100
+  # Exit with a clear error instead of waiting forever when synchronized frames do not arrive.
+  startup_timeout_s: 20.0
   # 프로파일: null 이면 color/depth 각각 기본 프로파일
   color_width: 1280
   color_height: 800
@@ -41,6 +43,37 @@ detector:
   device: null
   # COCO class id 41 = cup. 임시로 컵만 추적.
   class_ids: [41]
+
+# Camera-frame Object Anchor pose debug. Existing cup/AprilTag processing remains active
+# when this is false, when model_path is empty, or when the file does not exist.
+object_anchor:
+  enabled: true
+  camera_pose_only: true
+  config_path: configs/object_anchors/tissue_box_01_front_only.yaml
+  model_path: models/object_anchor/tissue_box_01_front_only/best.pt
+  detector_conf: 0.25
+  detector_iou: 0.45
+  imgsz: 640
+  device: null
+  draw: true
+  max_translation_jump_m: 0.25
+  max_rotation_jump_deg: 35.0
+  reset_after_missed_frames: 15
+  # Comparison/calibration output only. It never replaces the AprilTag world pipeline.
+  registration_file: out/object_anchor_calibration/tissue_box_01_world_pose.yaml
+  world_validation:
+    enabled: true
+    session_dir: out/object_anchor_world
+    registration_target_frames: 100
+    registration_min_seed_frames: 5
+    registration_max_position_outlier_m: 0.10
+    registration_max_rotation_outlier_deg: 20.0
+    compare_max_position_error_m: 0.15
+    compare_max_rotation_error_deg: 25.0
+    statistics_duration_s: 10.0
+    failure_save_enabled: true
+    failure_save_cooldown_s: 0.5
+    failure_save_max_frames: 200
 
 apriltag_scale:
   enabled: true

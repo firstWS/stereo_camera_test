@@ -8,6 +8,9 @@
   .\run.ps1 -Full
   .\run.ps1 -ImageFolder
   .\run.ps1 -Orbbec
+  .\run.ps1 -Orbbec -RegisterObjectAnchor
+  .\run.ps1 -Orbbec -Capture -Positive
+  .\run.ps1 -Orbbec -Capture -Negative -CaptureCount 200 -CaptureInterval 0.5
   .\run.ps1 -Config configs\default.yaml
 #>
 param(
@@ -15,12 +18,57 @@ param(
     [switch]$Full,
     [switch]$ImageFolder,
     [switch]$Orbbec,
+    [switch]$RegisterObjectAnchor,
+    [switch]$Capture,
+    [switch]$Positive,
+    [switch]$Negative,
+    [int]$CaptureCount = 100,
+    [double]$CaptureInterval = 1.0,
     [string]$Config = ""
 )
 
 $ErrorActionPreference = "Stop"
 $RepoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $RepoRoot
+
+$captureUsage = @"
+Valid capture examples:
+  .\run.ps1 -Orbbec -Capture -Positive
+  .\run.ps1 -Orbbec -Capture -Negative
+  .\run.ps1 -Orbbec -Capture -Positive -CaptureCount 150 -CaptureInterval 0.5
+"@
+
+$captureFlagsPresent = (
+    $Capture -or $Positive -or $Negative -or
+    $PSBoundParameters.ContainsKey("CaptureCount") -or
+    $PSBoundParameters.ContainsKey("CaptureInterval")
+)
+if ($captureFlagsPresent) {
+    if (-not $Capture) {
+        Write-Host "Capture type flags require -Capture.`n$captureUsage" -ForegroundColor Red
+        exit 2
+    }
+    if (-not $Orbbec) {
+        Write-Host "-Capture requires -Orbbec.`n$captureUsage" -ForegroundColor Red
+        exit 2
+    }
+    if ($Positive -eq $Negative) {
+        Write-Host "Choose exactly one of -Positive or -Negative.`n$captureUsage" -ForegroundColor Red
+        exit 2
+    }
+    if ($CaptureCount -le 0) {
+        Write-Host "-CaptureCount must be greater than zero.`n$captureUsage" -ForegroundColor Red
+        exit 2
+    }
+    if ($CaptureInterval -le 0) {
+        Write-Host "-CaptureInterval must be greater than zero.`n$captureUsage" -ForegroundColor Red
+        exit 2
+    }
+    if ($RegisterObjectAnchor) {
+        Write-Host "-RegisterObjectAnchor cannot be combined with -Capture.`n$captureUsage" -ForegroundColor Red
+        exit 2
+    }
+}
 
 . (Join-Path $RepoRoot "scripts\sync-session-path.ps1")
 
@@ -62,4 +110,18 @@ if (-not (Test-Path -LiteralPath $cfgPath)) {
 }
 
 Write-Host "Running repeatability_run with $Config ..." -ForegroundColor Green
-& $venvPy (Join-Path $RepoRoot "experiments\repeatability_run.py") --config $cfgPath
+$runArgs = @((Join-Path $RepoRoot "experiments\repeatability_run.py"), "--config", $cfgPath)
+if ($RegisterObjectAnchor) {
+    $runArgs += "--register-object-anchor"
+}
+if ($Capture) {
+    $runArgs += @(
+        "--capture-type", $(if ($Positive) { "positive" } else { "negative" }),
+        "--capture-count", $CaptureCount.ToString([Globalization.CultureInfo]::InvariantCulture),
+        "--capture-interval", $CaptureInterval.ToString([Globalization.CultureInfo]::InvariantCulture)
+    )
+}
+& $venvPy @runArgs
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+}

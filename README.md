@@ -5,6 +5,45 @@
 USB 스테레오(SBS) 캡처 → 보정·정류 → SGBM 시차 → 검출(YOLO) → 3D 추정 **또는** Orbbec SDK RGB-D 정렬 깊이 → YOLO → median depth 역투영 실험 코드입니다.
 
 
+## 확정 실행 환경
+
+Windows x64에서 아래 조합을 동일한 `.venv`로 검증합니다. Python 3.12는
+Orbbec 공식 Windows wheel 지원 범위(3.8~3.13)에 포함되며, 3.12.10은 Python
+3.12 계열의 마지막 Windows 전체 설치본입니다.
+
+| Component | Version |
+| --- | --- |
+| Python | 3.12.10 (64-bit) |
+| OpenCV GUI | 4.13.0.92 |
+| Ultralytics | 8.4.46 |
+| Orbbec binding (`pyorbbecsdk2`) | 2.1.1 |
+| NumPy | 2.4.4 |
+| PyYAML | 6.0.3 |
+| pytest | 8.4.2 |
+| PyTorch / torchvision | 2.11.0+cpu / 0.26.0 |
+
+`requirements.txt`는 이 버전을 고정합니다. OpenCV 미리보기가 필요하므로
+`opencv-python-headless`가 아니라 `opencv-python`을 사용합니다.
+
+환경을 처음 만들거나 깨진 `.venv`를 복구할 때:
+
+```powershell
+$env:STEREO_POC_PYTHON = "C:\Users\<user>\AppData\Local\Programs\Python\Python312\python.exe"
+.\setup.ps1
+```
+
+`setup.ps1`은 Python 3.12 확인, 패키지 설치, 기존 smoke test, 환경 import,
+pytest, Object Anchor 합성 PnP 테스트를 순서대로 실행합니다. 개별 확인 명령은
+다음과 같습니다.
+
+```powershell
+.\.venv\Scripts\python.exe scripts\verify_environment.py
+.\.venv\Scripts\python.exe -m pytest tests -q
+.\.venv\Scripts\python.exe scripts\synthetic_object_anchor_test.py
+.\.venv\Scripts\python.exe scripts\orbbec_smoke_test.py --frames 3 --timeout-s 20
+```
+
+
 
 ## 빠른 시작 (Windows)
 
@@ -33,6 +72,20 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned   # 한 번만, 스크립트
 - `.\run.ps1 -ImageFolder` — 좌·우 이미지 폴더(`configs/image_folder.yaml`)
 
 - `.\run.ps1 -Orbbec` — Orbbec RGB-D (`configs/orbbec_gemini.yaml`; `pip install pyorbbecsdk2` 및 호스트 SDK 필요)
+- `.\run.ps1 -Orbbec -Capture -Positive` — Object Anchor 학습용 원본 RGB 100장 자동 수집(기본 1초 간격)
+- `.\run.ps1 -Orbbec -Capture -Negative` — Negative 원본 RGB와 동일 stem의 빈 YOLO 라벨 100장 자동 수집
+
+수집 장수와 간격은 `-CaptureCount`, `-CaptureInterval`로 바꿀 수 있습니다.
+
+```powershell
+.\run.ps1 -Orbbec -Capture -Positive -CaptureCount 150 -CaptureInterval 0.5
+.\run.ps1 -Orbbec -Capture -Negative -CaptureCount 200 -CaptureInterval 1
+```
+
+수집 이미지는 `data/object_anchor_capture/{positive|negative}/images`, Negative 빈 라벨은
+`data/object_anchor_capture/negative/labels`, 통합 기록은
+`data/object_anchor_capture/capture_manifest.csv`에 저장됩니다. 저장되는 JPEG는 오버레이가 없는
+Orbbec 원본 BGR 프레임이며 화면에만 진행 상태가 표시됩니다.
 
 
 
@@ -171,6 +224,43 @@ input:
 ```
 
 `kpi_from_csv.py` 통계는 **`det_idx == 0`(대표 검출)** 행만 사용합니다.
+
+
+## Object Anchor 합성 Pose 테스트
+
+현재 MVP는 FRONT 면의 4개 keypoint를 사용하는
+`configs/object_anchors/tissue_box_01_front_only.yaml`이 기본입니다. 기존 8점 정의
+`configs/object_anchors/tissue_box_01.yaml`도 후속 전 방향 고도화를 위해 유지합니다.
+사용자 라벨, YOLO-Pose 출력, PnP 입력은 선택한 config의 ID 순서를 동일하게 사용해야
+합니다.
+
+YOLO-Pose 가중치가 없어도 합성 2D keypoint로 `solvePnPRansac` 복원을 검증할 수 있습니다.
+
+```powershell
+.\.venv\Scripts\python.exe scripts\synthetic_object_anchor_test.py
+```
+
+결과 행렬과 translation, roll/pitch/yaw, inlier 수, reprojection error가 출력되며,
+keypoint 순서와 축 시각화는 `out/object_anchor/synthetic_front_only_pose.png`에 저장됩니다.
+
+
+## Object Anchor 실시간 디버그
+
+실제 YOLO-Pose 모델이 준비되면 `configs/orbbec_gemini.yaml`의
+`object_anchor.model_path`에 `best.pt` 경로를 넣고 `enabled: true`로 변경합니다.
+모델 경로가 비어 있거나 파일이 없으면 Object Anchor만 비활성화되고 기존
+AprilTag·컵 처리는 계속 실행됩니다.
+
+이 단계는 `camera_pose_only: true`이며 월드 좌표를 계산하지 않습니다. RGB 화면에
+keypoint ID/confidence/effective visibility, FRONT skeleton, X/Y/Z 축, translation,
+roll/pitch/yaw, reprojection error, PnP inlier 수를 표시합니다. 유효 keypoint와
+inlier가 각각 4개 미만이거나, depth가 음수이거나, reprojection error 또는 프레임 간
+위치·회전 변화가 임계값을 넘으면 Pose를 무효 처리합니다.
+
+FRONT-only 20~30장 파일럿과 후속 8점 40장 절차, 라벨 규칙 및 학습 명령은
+`docs/OBJECT_ANCHOR_PILOT.md`를 참고합니다. 향후 AprilTag와 동일 고정판에서 얻은
+`T_world_object`는 `object_anchor_registration.py`의 저장/로드 인터페이스로 별도
+YAML에 기록합니다.
 
 
 ## 수동 설치 (스크립트 없이)

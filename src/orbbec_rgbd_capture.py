@@ -102,6 +102,23 @@ def _intrinsic_to_K(intr: Any) -> np.ndarray:
     )
 
 
+def _distortion_to_cv(distortion: Any) -> np.ndarray:
+    """Convert Orbbec distortion to OpenCV's k1,k2,p1,p2,k3,k4,k5,k6 order."""
+    return np.array(
+        [
+            float(distortion.k1),
+            float(distortion.k2),
+            float(distortion.p1),
+            float(distortion.p2),
+            float(distortion.k3),
+            float(distortion.k4),
+            float(distortion.k5),
+            float(distortion.k6),
+        ],
+        dtype=np.float64,
+    ).reshape(-1, 1)
+
+
 def _pick_video_profile(profile_list: Any, width: int | None, height: int | None, fmt: Any, fps: int | None) -> Any:
     if width is None or height is None or fps is None:
         return profile_list.get_default_video_stream_profile()
@@ -113,6 +130,7 @@ class OrbbecFrame:
     bgr: np.ndarray
     depth_m: np.ndarray
     K: np.ndarray
+    dist_coeffs: np.ndarray
 
 
 class OrbbecRGBDCapture:
@@ -124,9 +142,11 @@ class OrbbecRGBDCapture:
         self._pipeline: Any = None
         self._align_filter: Any = None
         self._K: np.ndarray | None = None
+        self._dist_coeffs = np.zeros((8, 1), dtype=np.float64)
         self._wait_ms = max(1, int(ob_cfg.get("wait_for_frames_ms", 100)))
         self._depth_additional = float(ob_cfg.get("depth_scale_additional", 1.0))
         self._depth_is_mm = bool(ob_cfg.get("depth_is_millimeters", True))
+        self._serial_number = str(ob_cfg.get("serial") or "").strip()
 
     def start(self) -> None:
         ob = self._cfg
@@ -150,6 +170,11 @@ class OrbbecRGBDCapture:
             device = device_list.get_device_by_serial_number(serial)
         else:
             device = device_list.get_device_by_index(dev_index)
+        if not self._serial_number:
+            try:
+                self._serial_number = str(device.get_device_info().get_serial_number())
+            except Exception:
+                self._serial_number = f"device_index_{dev_index}"
 
         pipeline = Pipeline(device)
         config = Config()
@@ -189,6 +214,10 @@ class OrbbecRGBDCapture:
 
         intr = color_profile.get_intrinsic()
         self._K = _intrinsic_to_K(intr)
+        try:
+            self._dist_coeffs = _distortion_to_cv(color_profile.get_distortion())
+        except Exception:
+            self._dist_coeffs = np.zeros((8, 1), dtype=np.float64)
         self._pipeline = pipeline
 
         if bool(ob.get("align_depth_to_color", True)):
@@ -210,6 +239,14 @@ class OrbbecRGBDCapture:
         if self._K is None:
             raise RuntimeError("OrbbecRGBDCapture.start() first")
         return self._K
+
+    @property
+    def dist_coeffs(self) -> np.ndarray:
+        return self._dist_coeffs.copy()
+
+    @property
+    def serial_number(self) -> str:
+        return self._serial_number
 
     def read_rgbd(self) -> tuple[bool, OrbbecFrame | None]:
         """Returns ``(ok, OrbbecFrame)`` with ``depth_m`` in meters (float32)."""
@@ -252,7 +289,12 @@ class OrbbecRGBDCapture:
 
         if self._K is None:
             return False, None
-        return True, OrbbecFrame(bgr=bgr, depth_m=depth, K=self._K.copy())
+        return True, OrbbecFrame(
+            bgr=bgr,
+            depth_m=depth,
+            K=self._K.copy(),
+            dist_coeffs=self._dist_coeffs.copy(),
+        )
 
 
 def placeholder_stereo_frames(rgb_bgr: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
