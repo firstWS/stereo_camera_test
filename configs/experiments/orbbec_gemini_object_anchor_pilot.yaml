@@ -50,7 +50,7 @@ object_anchor:
   enabled: true
   camera_pose_only: true
   config_path: configs/object_anchors/tissue_box_01_front_only.yaml
-  model_path: models/object_anchor/tissue_box_01_front_only_orbbec_full99/best.pt
+  model_path: models/object_anchor/tissue_box_01_front_only_orbbec_pilot/best.pt
   detector_conf: 0.25
   detector_iou: 0.45
   imgsz: 640
@@ -63,7 +63,7 @@ object_anchor:
   registration_file: out/object_anchor_calibration/tissue_box_01_world_pose.yaml
   world_validation:
     enabled: true
-    session_dir: out/object_anchor_world
+    session_dir: out/object_anchor_pilot/live_world
     registration_target_frames: 100
     registration_min_seed_frames: 5
     registration_max_position_outlier_m: 0.10
@@ -74,29 +74,6 @@ object_anchor:
     failure_save_enabled: true
     failure_save_cooldown_s: 0.5
     failure_save_max_frames: 200
-
-# Session-only MVP DEMO / PREVIEW. Never replaces the operational AprilTag world source.
-# Calibration is memory-only for the process lifetime (not written to production paths).
-object_anchor_preview:
-  enabled: true
-  model_name: Full99
-  calibration_samples: 30
-  temporal_filter_window: 3
-  max_apriltag_translation_jump_m: 0.5
-  max_apriltag_rotation_jump_deg: 30.0
-  max_mean_reprojection_error_px: 5.0
-  preferred_tag_id: 0
-  start_calibration_key: c
-  reset_calibration_key: r
-  switch_display_source_key: o
-  toggle_panel_key: p
-  save_preview_logs: true
-  auto_switch_world_source: false
-  persist_calibration: false
-  output_root: out/object_anchor_preview
-  # Longer live demos; leave null to keep repeatability.max_frames.
-  max_frames_override: 3000
-  show_panel: true
 
 apriltag_scale:
   enabled: true
@@ -130,7 +107,7 @@ apriltag_world:
 
 repeatability:
   max_frames: 300
-  output_csv: out/repeatability_orbbec.csv
+  output_csv: out/object_anchor_pilot/repeatability_orbbec_pilot.csv
   warmup_frames: 10
   log_all_boxes: true
   max_boxes_per_frame: 64
@@ -148,6 +125,6 @@ preview:
     combined: true
     disparity: true
   titles:
-    merged: "stereo-3d-poc | MVP DEMO PREVIEW | RGB + depth"
-    combined: "stereo-3d-poc | MVP DEMO PREVIEW | RGB"
+    merged: "stereo-3d-poc | RGB + depth"
+    combined: "stereo-3d-poc | RGB"
     disparity: "stereo-3d-poc | depth (m)"

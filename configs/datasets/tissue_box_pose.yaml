@@ -1,0 +1,11 @@
+# Ultralytics YOLO-Pose dataset layout after the 40-image pilot is labeled.
+path: data/tissue_box_pose
+train: images/train
+val: images/val
+test: images/test
+
+kpt_shape: [8, 3]
+flip_idx: [0, 1, 2, 3, 4, 5, 6, 7]
+
+names:
+  0: tissue_box

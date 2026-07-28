@@ -112,6 +112,13 @@ from object_anchor_world import (  # noqa: E402
     ObjectAnchorWorldTracker,
     build_world_settings,
 )
+from object_anchor_preview import (  # noqa: E402
+    ObjectAnchorPreviewSession,
+    PreviewFrameView,
+    build_preview_session,
+    draw_preview_banner,
+    load_preview_settings,
+)
 from stereo_types import BBox, StereoFrame  # noqa: E402
 from rgbd_geometry import depth_estimate_rgbd_bbox, orbbec_sparse_stub  # noqa: E402
 
@@ -520,6 +527,8 @@ def _preview_tick(
     overlay_left_bgr: np.ndarray | None = None,
     extra_lines: list[str] | None = None,
     scalar_depth_m: np.ndarray | None = None,
+    post_annotate: Any | None = None,
+    key_handler: Any | None = None,
 ) -> bool:
     """
     미리보기: **창 2개** — (1) ``preview.combined_side_by_side_stereo`` 가 참이면 정류 ``좌|우`` 가로 합성,
@@ -528,6 +537,7 @@ def _preview_tick(
     ``preview.stack_disparity_below: true`` 이면 (1)(2)를 세로 한 장으로 합쳐 단일 창(호환용).
 
     Keys: Q quit; S saves ``left/``, ``right/``, and preview overlays (``overlay_rgb/``, etc.).
+    Optional ``key_handler(key)`` receives other keys (MVP DEMO preview uses C/R/O/P).
 
     Returns True if user pressed Q (quit session). After return, callers may invoke
     ``_preview_image_folder_hold_spin`` when ``preview.image_folder_hold_until_quit`` is set.
@@ -556,6 +566,8 @@ def _preview_tick(
     hl, wl = rect.left_bgr.shape[:2]
     lb = overlay_left_bgr if overlay_left_bgr is not None else rect.left_bgr
     overlay_left_full = _annotate_left(lb, boxes_depths, extra_lines=extra_lines)
+    if callable(post_annotate):
+        overlay_left_full = post_annotate(overlay_left_full)
     combined_visual = (
         np.hstack([overlay_left_full, rect.right_bgr]) if side_by_side else overlay_left_full
     )
@@ -614,6 +626,8 @@ def _preview_tick(
             )
         else:
             print("Snapshots disabled (no snapshot session directory).")
+    elif callable(key_handler):
+        key_handler(key)
     return False
 
 
@@ -709,6 +723,46 @@ def _apriltag_world_extra_overlay(
     ids = ",".join(str(x) for x in pose.visible_tag_ids)
     err = min(obs.reprojection_error_px for obs in pose.observations)
     return [f"WORLD tags={ids} reproj={err:.2f}px"[:120]]
+
+
+def _preview_display_world(
+    operational_world: WorldPointEstimate | None,
+    view: PreviewFrameView | None,
+) -> WorldPointEstimate | None:
+    """Visual-only representative world point. Operational CSV source is unchanged."""
+    if view is None or view.display_source != "OBJECT_ANCHOR_PREVIEW":
+        return operational_world
+    point = view.p_world_cup_object_m
+    if point is None:
+        return WorldPointEstimate(valid=False, notes="object_anchor_preview_unavailable")
+    return WorldPointEstimate(
+        X=float(point[0]),
+        Y=float(point[1]),
+        Z=float(point[2]),
+        valid=True,
+        source_tag_ids=(),
+        notes="mvp_demo_object_anchor_preview_display_only",
+    )
+
+
+def _oa_preview_hooks(
+    oa_preview: ObjectAnchorPreviewSession | None,
+    view: PreviewFrameView | None,
+) -> tuple[Any | None, Any | None]:
+    if oa_preview is None:
+        return None, None
+
+    def _post(image: np.ndarray) -> np.ndarray:
+        if view is None:
+            return image
+        return draw_preview_banner(image, view)
+
+    def _keys(key: int) -> None:
+        action = oa_preview.handle_key(key)
+        if action:
+            print(f"[MVP DEMO PREVIEW] {action}")
+
+    return _post, _keys
 
 
 def build_detector(cfg: dict):
@@ -1018,6 +1072,32 @@ def _run_session_orbbec(
                 start_registration=register_object_anchor,
             )
 
+    preview_settings = load_preview_settings(cfg.get("object_anchor_preview"))
+    oa_preview: ObjectAnchorPreviewSession | None = None
+    if (
+        preview_settings.enabled
+        and object_anchor_runtime is not None
+        and atw_enabled
+    ):
+        model_path_str = str(
+            _resolve_repo_path(object_anchor_raw.get("model_path"))
+            or object_anchor_raw.get("model_path")
+            or ""
+        )
+        config_path_str = str(
+            _resolve_repo_path(object_anchor_raw.get("config_path"))
+            or object_anchor_raw.get("config_path")
+            or ""
+        )
+        oa_preview = build_preview_session(
+            preview_settings,
+            repo_root=_REPO_ROOT,
+            model_path=model_path_str,
+            config_path=config_path_str,
+        )
+        if preview_settings.max_frames_override is not None:
+            max_frames = int(preview_settings.max_frames_override)
+
     z_min_roi = float(ob_cfg.get("roi_z_min_m", 0.05))
     z_max_roi = float(ob_cfg.get("roi_z_max_m", 40.0))
     min_valid_ratio = float(ob_cfg.get("min_valid_depth_ratio", 0.03))
@@ -1051,6 +1131,17 @@ def _run_session_orbbec(
         print(f"  frame log: {world_tracker.csv_path}")
         print(f"  registration file: {world_tracker.registration_file}")
         print(f"  registration active: {world_tracker.registration is not None}")
+    if oa_preview is not None:
+        print("Object Anchor MVP DEMO / PREVIEW enabled (session calibration only).")
+        print("  Does NOT replace operational AprilTag world source.")
+        print(
+            f"  Keys: [{preview_settings.start_calibration_key.upper()}]=session calibrate  "
+            f"[{preview_settings.reset_calibration_key.upper()}]=reset  "
+            f"[{preview_settings.switch_display_source_key.upper()}]=display source  "
+            f"[{preview_settings.toggle_panel_key.upper()}]=panel"
+        )
+        if oa_preview.output_dir is not None:
+            print(f"  preview logs: {oa_preview.output_dir}")
 
     if preview_enabled:
         print(
@@ -1230,8 +1321,21 @@ def _run_session_orbbec(
                     object_anchor_lines.extend(world_lines)
 
                 prim = pick_primary_box(dets)
+                preview_view: PreviewFrameView | None = None
                 if prim is None:
+                    if oa_preview is not None:
+                        preview_view = oa_preview.update(
+                            frame_idx=idx,
+                            timestamp=time.perf_counter() - t0,
+                            fps=fps_ema,
+                            apriltag_result=atw_result,
+                            anchor_result=object_anchor_result,
+                            cup_estimate=None,
+                            cup_detected=False,
+                            overlay_bgr=left_vis_bgr,
+                        )
                     disp_ms_track = (time.perf_counter() - t_depth0) * 1000.0
+                    post_annotate, key_handler = _oa_preview_hooks(oa_preview, preview_view)
                     if preview_enabled:
                         if _preview_tick(
                             preview_cfg,
@@ -1250,6 +1354,8 @@ def _run_session_orbbec(
                             scalar_depth_m=depth_m
                             if (_preview_needs_disparity_map(preview_cfg))
                             else None,
+                            post_annotate=post_annotate,
+                            key_handler=key_handler,
                         ):
                             break
                     if idx >= warmup:
@@ -1315,13 +1421,38 @@ def _run_session_orbbec(
                     )
                     rows_payload.append((bbox, bi, est_a_i, est_b_i, world_i))
 
+                primary_est = rows_payload[0][2]
+                if oa_preview is not None:
+                    preview_view = oa_preview.update(
+                        frame_idx=idx,
+                        timestamp=time.perf_counter() - t0,
+                        fps=fps_ema,
+                        apriltag_result=atw_result,
+                        anchor_result=object_anchor_result,
+                        cup_estimate=primary_est,
+                        cup_detected=True,
+                        overlay_bgr=left_vis_bgr,
+                    )
+
                 disp_ms_track = (time.perf_counter() - t_depth0) * 1000.0
                 apr_lines = (
                     _apriltag_extra_overlay(at_outcome, apriltag_enabled)
                     + _apriltag_world_extra_overlay(atw_result, atw_enabled)
                     + object_anchor_lines
                 )
-                boxes_depths = [(b, ea, eb, wp) for b, _, ea, eb, wp in rows_payload]
+                # Operational world stays AprilTag; on-box display may follow display_source.
+                boxes_depths = [
+                    (
+                        b,
+                        ea,
+                        eb,
+                        _preview_display_world(wp, preview_view)
+                        if bi == 0
+                        else wp,
+                    )
+                    for bi, (b, _, ea, eb, wp) in enumerate(rows_payload)
+                ]
+                post_annotate, key_handler = _oa_preview_hooks(oa_preview, preview_view)
 
                 if preview_enabled:
                     if _preview_tick(
@@ -1335,6 +1466,8 @@ def _run_session_orbbec(
                         overlay_left_bgr=left_vis_bgr,
                         extra_lines=apr_lines,
                         scalar_depth_m=depth_m,
+                        post_annotate=post_annotate,
+                        key_handler=key_handler,
                     ):
                         break
 
@@ -1388,6 +1521,12 @@ def _run_session_orbbec(
             print(yaml.safe_dump(world_tracker.summary(), sort_keys=False))
             summary_path = world_tracker.close()
             print(f"Object Anchor world summary: {summary_path}")
+        if oa_preview is not None:
+            preview_summary = oa_preview.close()
+            print("Object Anchor MVP DEMO / PREVIEW summary:")
+            print(yaml.safe_dump(oa_preview.summary(), sort_keys=False))
+            if preview_summary is not None:
+                print(f"Object Anchor MVP DEMO preview summary: {preview_summary}")
 
     return out_csv
 

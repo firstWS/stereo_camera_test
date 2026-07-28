@@ -1,0 +1,127 @@
+# Full99 candidate experiment. Production and Pilot configs remain unchanged.
+input:
+  type: orbbec
+
+calibration:
+  yaml: calibration/stereo_calib.yaml
+
+camera:
+  device_index: 0
+
+orbbec:
+  serial: ""
+  device_index: 0
+  align_depth_to_color: true
+  wait_for_frames_ms: 100
+  startup_timeout_s: 20.0
+  color_width: 1280
+  color_height: 800
+  color_fps: 30
+  depth_width: null
+  depth_height: null
+  depth_fps: null
+  depth_scale_additional: 1.0
+  depth_is_millimeters: true
+  min_valid_depth_ratio: 0.03
+  roi_z_min_m: 0.05
+  roi_z_max_m: 40.0
+
+detector:
+  kind: yolo
+  model_path: yolo11s.pt
+  conf: 0.4
+  iou: 0.45
+  imgsz: 640
+  device: null
+  class_ids: [41]
+
+object_anchor:
+  enabled: true
+  camera_pose_only: true
+  config_path: configs/object_anchors/tissue_box_01_front_only.yaml
+  model_path: models/object_anchor/tissue_box_01_front_only_orbbec_full99/best.pt
+  detector_conf: 0.25
+  detector_iou: 0.45
+  imgsz: 640
+  device: null
+  draw: true
+  max_translation_jump_m: 0.25
+  max_rotation_jump_deg: 35.0
+  reset_after_missed_frames: 15
+  registration_file: out/object_anchor_full99/tissue_box_01_world_pose.yaml
+  world_validation:
+    enabled: true
+    session_dir: out/object_anchor_full99/live_world
+    registration_target_frames: 100
+    registration_min_seed_frames: 5
+    registration_max_position_outlier_m: 0.10
+    registration_max_rotation_outlier_deg: 20.0
+    compare_max_position_error_m: 0.15
+    compare_max_rotation_error_deg: 25.0
+    statistics_duration_s: 10.0
+    failure_save_enabled: true
+    failure_save_cooldown_s: 0.5
+    failure_save_max_frames: 200
+
+apriltag_scale:
+  enabled: true
+  dictionary: APRILTAG_36H11
+  known_spacing_m: 1.0198039027
+  tag_id_a: 0
+  tag_id_b: 1
+  sample_radius: 2
+  draw: true
+  apply_scale_to_depth: false
+
+apriltag_world:
+  enabled: true
+  dictionary: APRILTAG_36H11
+  tag_size_m: 0.135
+  front_normal: "+Z"
+  top_direction: "+Y"
+  draw: true
+  tags:
+    0:
+      position: [1.0, 2.0, 0.0]
+      yaw_deg: 0.0
+    1:
+      position: [2.0, 1.8, 0.0]
+      yaw_deg: 0.0
+
+# Isolated, opt-in diagnostic. It is only run through the dedicated experiment
+# subcommand after the user confirms the live scene is ready.
+apriltag_intrinsic_diagnostics:
+  enabled: true
+  frames: 300
+  rotation_jump_deg: 30.0
+  translation_jump_m: 0.50
+  cluster_translation_threshold_m: 0.25
+  cluster_rotation_threshold_deg: 20.0
+  cluster_min_samples: 3
+  boundary_margin_px: 10.0
+  occlusion_edge_ratio: 0.40
+  prepare_registration_if_stable: true
+
+repeatability:
+  max_frames: 300
+  output_csv: out/object_anchor_full99/repeatability_orbbec_full99.csv
+  warmup_frames: 10
+  log_all_boxes: true
+  max_boxes_per_frame: 64
+
+preview:
+  enabled: true
+  scale: 0.5
+  window_autosize: true
+  wait_key_ms: 1
+  snapshot_dir: out/object_anchor_full99/snapshots
+  disparity_percentile_smooth_alpha: 0.18
+  stack_disparity_below: false
+  combined_side_by_side_stereo: false
+  windows:
+    combined: true
+    disparity: true
+  titles:
+    merged: "stereo-3d-poc | RGB + depth | Full99 candidate"
+    combined: "stereo-3d-poc | RGB | Full99 candidate"
+    disparity: "stereo-3d-poc | depth (m) | Full99 candidate"

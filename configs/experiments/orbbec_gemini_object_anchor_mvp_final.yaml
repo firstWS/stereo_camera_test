@@ -1,0 +1,155 @@
+# Isolated 1st-MVP final comparison. Production configs remain unchanged.
+# AprilTag world uses ID 0 only. No multi-tag world pose. No production writes.
+input:
+  type: orbbec
+
+calibration:
+  yaml: calibration/stereo_calib.yaml
+
+camera:
+  device_index: 0
+
+orbbec:
+  serial: ""
+  device_index: 0
+  align_depth_to_color: true
+  wait_for_frames_ms: 100
+  startup_timeout_s: 20.0
+  color_width: 1280
+  color_height: 800
+  color_fps: 30
+  depth_width: null
+  depth_height: null
+  depth_fps: null
+  depth_scale_additional: 1.0
+  depth_is_millimeters: true
+  min_valid_depth_ratio: 0.03
+  roi_z_min_m: 0.05
+  roi_z_max_m: 40.0
+
+detector:
+  kind: yolo
+  model_path: yolo11s.pt
+  conf: 0.4
+  iou: 0.45
+  imgsz: 640
+  device: null
+  class_ids: [41]
+
+object_anchor:
+  enabled: true
+  camera_pose_only: true
+  config_path: configs/object_anchors/tissue_box_01_front_only.yaml
+  model_path: models/object_anchor/tissue_box_01_front_only_orbbec_full99/best.pt
+  detector_conf: 0.25
+  detector_iou: 0.45
+  imgsz: 640
+  device: null
+  draw: true
+  max_translation_jump_m: 0.25
+  max_rotation_jump_deg: 35.0
+  reset_after_missed_frames: 15
+  # Placeholder only. Isolated runner writes under mvp_final_comparison/<timestamp>/.
+  registration_file: out/object_anchor_full99/mvp_final_comparison/_unused_placeholder.yaml
+  world_validation:
+    enabled: false
+    session_dir: out/object_anchor_full99/mvp_final_comparison/_unused_world
+    registration_target_frames: 100
+    registration_min_seed_frames: 5
+    registration_max_position_outlier_m: 0.10
+    registration_max_rotation_outlier_deg: 20.0
+    compare_max_position_error_m: 0.15
+    compare_max_rotation_error_deg: 25.0
+    statistics_duration_s: 10.0
+    failure_save_enabled: false
+    failure_save_cooldown_s: 0.5
+    failure_save_max_frames: 0
+
+# Disabled: MVP uses AprilTag ID 0 only; spacing against ID 1 is out of scope.
+apriltag_scale:
+  enabled: false
+  dictionary: APRILTAG_36H11
+  known_spacing_m: 1.0198039027
+  tag_id_a: 0
+  tag_id_b: 1
+  sample_radius: 2
+  draw: false
+  apply_scale_to_depth: false
+
+apriltag_world:
+  enabled: true
+  dictionary: APRILTAG_36H11
+  tag_size_m: 0.135
+  front_normal: "+Z"
+  top_direction: "+Y"
+  draw: true
+  tags:
+    0:
+      position: [1.0, 2.0, 0.0]
+      yaw_deg: 0.0
+
+mvp_final_comparison:
+  registration_frames: 300
+  preflight_frames: 20
+  comparison_frames: 300
+  stationary_frames: 50
+  cluster_translation_threshold_m: 0.25
+  cluster_rotation_threshold_deg: 20.0
+  cluster_min_samples: 3
+  # Branch-aware MVP: do NOT use single 95%/250 majority gate.
+  branch_aware: true
+  use_single_reference_cluster_gate: false
+  reference_min_detection_rate: 0.95
+  reference_min_largest_cluster_ratio: 0.95
+  reference_min_cluster_size: 250
+  branch_min_joint_valid: 30
+  branch_min_inliers: 20
+  registration_min_joint_valid: 30
+  registration_min_inliers: 20
+  registration_max_position_outlier_m: 0.10
+  registration_max_rotation_outlier_deg: 20.0
+  registration_residual_translation_median_m: 0.05
+  registration_residual_translation_p90_m: 0.10
+  registration_residual_rotation_median_deg: 5.0
+  registration_residual_rotation_p90_deg: 10.0
+  preflight_min_tag_reference_valid: 15
+  preflight_min_object_world_pose: 15
+  preflight_min_pose_comparable: 15
+  preflight_min_cup_camera: 5
+  mvp_min_object_world_pose_rate: 0.80
+  mvp_min_pose_comparable_rate: 0.75
+  mvp_max_object_temporal_jump_rate: 0.01
+  mvp_translation_median_cm: 5.0
+  mvp_translation_p90_cm: 10.0
+  mvp_rotation_median_deg: 5.0
+  mvp_rotation_p90_deg: 10.0
+  mvp_cup_recommended_frames: 100
+  mvp_cup_median_cm: 5.0
+  mvp_cup_p90_cm: 10.0
+  output_root: out/object_anchor_full99/mvp_final_comparison
+  # Isolated only. Selected offline: causal translation median + quaternion avg, window=3.
+  temporal_filter_window: 3
+
+repeatability:
+  max_frames: 300
+  output_csv: out/object_anchor_full99/mvp_final_comparison/_unused_repeatability.csv
+  warmup_frames: 0
+  log_all_boxes: true
+  max_boxes_per_frame: 64
+
+preview:
+  enabled: true
+  scale: 0.5
+  window_autosize: true
+  wait_key_ms: 1
+  snapshot_dir: out/object_anchor_full99/mvp_final_comparison/_unused_snapshots
+  disparity_percentile_smooth_alpha: 0.18
+  stack_disparity_below: false
+  combined_side_by_side_stereo: false
+  windows:
+    combined: true
+    disparity: true
+  titles:
+    merged: "stereo-3d-poc | MVP final comparison"
+    combined: "stereo-3d-poc | RGB | MVP final"
+    disparity: "stereo-3d-poc | depth (m) | MVP final"

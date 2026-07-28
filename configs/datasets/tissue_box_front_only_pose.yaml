@@ -1,0 +1,10 @@
+# Ultralytics YOLO-Pose dataset for the fixed FRONT-only Object Anchor MVP.
+path: data/tissue_box_front_only_pose
+train: images/train
+val: images/val
+
+kpt_shape: [4, 3]
+flip_idx: [0, 1, 2, 3]
+
+names:
+  0: tissue_box

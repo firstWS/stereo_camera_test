@@ -1,0 +1,20 @@
+label: tissue_box
+anchor_config: ../object_anchors/tissue_box_01_front_only.yaml
+keypoint_order:
+  - id: 0
+    name: front_top_left
+  - id: 1
+    name: front_top_right
+  - id: 2
+    name: front_bottom_right
+  - id: 3
+    name: front_bottom_left
+skeleton:
+  - [0, 1]
+  - [1, 2]
+  - [2, 3]
+  - [3, 0]
+visibility:
+  visible: 2
+  occluded_but_reliable: 1
+  hidden_or_uncertain: 0
