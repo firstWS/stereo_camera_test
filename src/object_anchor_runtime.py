@@ -117,6 +117,8 @@ class ObjectAnchorRuntime:
         dist_coeffs: np.ndarray | None,
         *,
         draw_on_bgr: np.ndarray | None = None,
+        debug_overlay: bool = True,
+        draw_pose_axis: bool = True,
     ) -> ObjectAnchorFrameResult:
         overlay_source = draw_on_bgr if draw_on_bgr is not None else bgr
         detections = self.detector.predict(bgr)
@@ -178,11 +180,12 @@ class ObjectAnchorRuntime:
                 self.config,
                 confidences=detection.keypoint_confidences,
                 visibility=effective_visibility,
-                show_confidence_visibility=True,
-                show_names=True,
+                show_confidence_visibility=debug_overlay,
+                show_names=debug_overlay,
+                show_labels=debug_overlay,
                 skeleton_crossed=bool(skeleton_crossings),
             )
-            if pose.valid:
+            if pose.valid and draw_pose_axis:
                 overlay = draw_object_pose_axes(
                     overlay,
                     pose,

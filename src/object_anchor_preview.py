@@ -41,6 +41,9 @@ PREVIEW_CSV_FIELDS = (
     "object_anchor_pnp_valid",
     "object_anchor_reprojection_px",
     "object_anchor_filter_window",
+    "T_camera_object_raw_json",
+    "T_camera_object_filtered_raw_json",
+    "T_camera_object_aligned_json",
     "preview_state",
     "preview_calibration_count",
     "cup_detected",
@@ -77,6 +80,20 @@ class ObjectAnchorPreviewSettings:
     reset_calibration_key: str = "r"
     switch_display_source_key: str = "o"
     toggle_panel_key: str = "p"
+    debug_overlay_enabled: bool = False
+    debug_overlay_toggle_key: str = "d"
+    align_object_frame_to_apriltag: bool = True
+    object_frame_alignment_rotation: tuple[
+        tuple[float, float, float],
+        tuple[float, float, float],
+        tuple[float, float, float],
+    ] = (
+        (1.0, 0.0, 0.0),
+        (0.0, 0.0, -1.0),
+        (0.0, 1.0, 0.0),
+    )
+    draw_raw_object_axis_in_debug: bool = True
+    draw_aligned_object_axis: bool = True
     save_preview_logs: bool = True
     auto_switch_world_source: bool = False
     persist_calibration: bool = False
@@ -88,6 +105,23 @@ class ObjectAnchorPreviewSettings:
 def load_preview_settings(raw: dict[str, Any] | None) -> ObjectAnchorPreviewSettings:
     cfg = raw if isinstance(raw, dict) else {}
     override = cfg.get("max_frames_override")
+    alignment_raw = cfg.get("object_frame_alignment") or {}
+    rotation = np.asarray(
+        alignment_raw.get(
+            "rotation_matrix",
+            [[1.0, 0.0, 0.0], [0.0, 0.0, -1.0], [0.0, 1.0, 0.0]],
+        ),
+        dtype=np.float64,
+    ).reshape(3, 3)
+    translation = np.asarray(
+        alignment_raw.get("translation_m", [0.0, 0.0, 0.0]), dtype=np.float64
+    ).reshape(3)
+    if not np.allclose(translation, 0.0, atol=1e-12):
+        raise ValueError("object frame alignment must be rotation-only")
+    if not np.allclose(rotation.T @ rotation, np.eye(3), atol=1e-8):
+        raise ValueError("object frame alignment rotation must be orthonormal")
+    if not np.isclose(np.linalg.det(rotation), 1.0, atol=1e-8):
+        raise ValueError("object frame alignment rotation determinant must be +1")
     return ObjectAnchorPreviewSettings(
         enabled=bool(cfg.get("enabled", False)),
         model_name=str(cfg.get("model_name", "Full99")),
@@ -109,6 +143,20 @@ def load_preview_settings(raw: dict[str, Any] | None) -> ObjectAnchorPreviewSett
             :1
         ],
         toggle_panel_key=str(cfg.get("toggle_panel_key", "p")).lower()[:1],
+        debug_overlay_enabled=bool(cfg.get("debug_overlay_enabled", False)),
+        debug_overlay_toggle_key=str(
+            cfg.get("debug_overlay_toggle_key", "d")
+        ).lower()[:1],
+        align_object_frame_to_apriltag=bool(
+            cfg.get("align_object_frame_to_apriltag", True)
+        ),
+        object_frame_alignment_rotation=tuple(
+            tuple(float(value) for value in row) for row in rotation
+        ),
+        draw_raw_object_axis_in_debug=bool(
+            cfg.get("draw_raw_object_axis_in_debug", True)
+        ),
+        draw_aligned_object_axis=bool(cfg.get("draw_aligned_object_axis", True)),
         save_preview_logs=bool(cfg.get("save_preview_logs", True)),
         auto_switch_world_source=bool(cfg.get("auto_switch_world_source", False)),
         persist_calibration=bool(cfg.get("persist_calibration", False)),
@@ -129,6 +177,34 @@ def causal_filter_pose(
     if len(selected) == 1:
         return np.asarray(selected[0], dtype=np.float64).copy()
     return average_transforms(selected, position_median=True)
+
+
+def object_frame_alignment_transform(
+    settings: ObjectAnchorPreviewSettings,
+) -> np.ndarray:
+    """Return T_object_raw_to_aligned (rotation only).
+
+    Raw tissue frame: +X right, +Y front-to-back, +Z up.
+    AprilTag/aligned frame: +X right, +Y up, +Z out of the front face.
+    Therefore aligned basis vectors expressed in raw coordinates are
+    (+Xraw, +Zraw, -Yraw), i.e. Rx(+90 deg).
+    """
+    transform = np.eye(4, dtype=np.float64)
+    if settings.align_object_frame_to_apriltag:
+        transform[:3, :3] = np.asarray(
+            settings.object_frame_alignment_rotation, dtype=np.float64
+        )
+    return transform
+
+
+def align_object_pose(
+    T_camera_object_raw: np.ndarray,
+    settings: ObjectAnchorPreviewSettings,
+) -> np.ndarray:
+    return (
+        np.asarray(T_camera_object_raw, dtype=np.float64)
+        @ object_frame_alignment_transform(settings)
+    )
 
 
 def transform_point(transform: np.ndarray, point_xyz: np.ndarray) -> np.ndarray:
@@ -175,6 +251,85 @@ def _fmt_xyz_cm(point_m: np.ndarray | None) -> str:
     return f"X={cm[0]:.1f}  Y={cm[1]:.1f}  Z={cm[2]:.1f} cm"
 
 
+def draw_object_preview_axes(
+    image_bgr: np.ndarray,
+    view: PreviewFrameView,
+    camera_matrix: np.ndarray,
+    dist_coeffs: np.ndarray | None,
+    settings: ObjectAnchorPreviewSettings,
+    *,
+    axis_length_m: float = 0.08,
+) -> np.ndarray:
+    """Draw aligned OA axis by default; add raw axis and labels in debug mode."""
+    canvas = image_bgr
+    distortion = (
+        np.zeros((5, 1), dtype=np.float64)
+        if dist_coeffs is None
+        else np.asarray(dist_coeffs, dtype=np.float64).reshape(-1, 1)
+    )
+
+    def draw(transform: np.ndarray, label: str, y_offset: int, thickness: int) -> None:
+        rotation = np.asarray(transform[:3, :3], dtype=np.float64)
+        translation = np.asarray(transform[:3, 3], dtype=np.float64).reshape(3, 1)
+        rvec, _ = cv2.Rodrigues(rotation)
+        cv2.drawFrameAxes(
+            canvas,
+            np.asarray(camera_matrix, dtype=np.float64),
+            distortion,
+            rvec,
+            translation,
+            float(axis_length_m),
+            thickness,
+        )
+        origin, _ = cv2.projectPoints(
+            np.zeros((1, 3), dtype=np.float64),
+            rvec,
+            translation,
+            np.asarray(camera_matrix, dtype=np.float64),
+            distortion,
+        )
+        x, y = np.rint(origin.reshape(2)).astype(int)
+        cv2.putText(
+            canvas,
+            label,
+            (x + 8, y + y_offset),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.45,
+            (255, 255, 255),
+            2,
+            cv2.LINE_AA,
+        )
+        cv2.putText(
+            canvas,
+            label,
+            (x + 8, y + y_offset),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.45,
+            (25, 25, 25),
+            1,
+            cv2.LINE_AA,
+        )
+
+    if settings.draw_aligned_object_axis and view.T_camera_object_aligned is not None:
+        draw(view.T_camera_object_aligned, "OA ALIGNED AXIS", -10, 3)
+    if (
+        view.debug_overlay_enabled
+        and settings.draw_raw_object_axis_in_debug
+        and (
+            view.T_camera_object_filtered_raw is not None
+            or view.T_camera_object_raw is not None
+        )
+    ):
+        raw_axis_pose = (
+            view.T_camera_object_filtered_raw
+            if view.T_camera_object_filtered_raw is not None
+            else view.T_camera_object_raw
+        )
+        assert raw_axis_pose is not None
+        draw(raw_axis_pose, "OA RAW AXIS", 18, 1)
+    return canvas
+
+
 @dataclass
 class PreviewFrameView:
     preview_state: PreviewState
@@ -189,6 +344,11 @@ class PreviewFrameView:
     calibration_target: int = 30
     display_source: DisplaySource = "APRILTAG"
     show_panel: bool = True
+    fps: float | None = None
+    debug_overlay_enabled: bool = False
+    T_camera_object_raw: np.ndarray | None = None
+    T_camera_object_filtered_raw: np.ndarray | None = None
+    T_camera_object_aligned: np.ndarray | None = None
     banner_title: str = "MVP DEMO / PREVIEW (not production)"
     note: str = ""
     camera_translation_diff_cm: float | None = None
@@ -203,6 +363,7 @@ class ObjectAnchorPreviewSession:
     output_dir: Path | None = None
     display_source: DisplaySource = "APRILTAG"
     show_panel: bool = True
+    debug_overlay_enabled: bool = False
     calibrating: bool = False
     T_world_object_preview: np.ndarray | None = None
     calibration_samples: list[np.ndarray] = field(default_factory=list)
@@ -227,6 +388,7 @@ class ObjectAnchorPreviewSession:
     def __post_init__(self) -> None:
         self.pose_history = deque(maxlen=max(1, int(self.settings.temporal_filter_window)))
         self.show_panel = bool(self.settings.show_panel)
+        self.debug_overlay_enabled = bool(self.settings.debug_overlay_enabled)
         if self.settings.save_preview_logs:
             assert self.output_dir is not None
             self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -280,13 +442,34 @@ class ObjectAnchorPreviewSession:
         if char == self.settings.toggle_panel_key:
             self.show_panel = not self.show_panel
             return f"panel:{'on' if self.show_panel else 'off'}"
+        if char == self.settings.debug_overlay_toggle_key:
+            self.debug_overlay_enabled = not self.debug_overlay_enabled
+            return f"debug_overlay:{'on' if self.debug_overlay_enabled else 'off'}"
         return None
 
     def _object_anchor_sample_ok(
         self, anchor_result: ObjectAnchorFrameResult | None
-    ) -> tuple[bool, str, np.ndarray | None, float | None, bool, bool]:
+    ) -> tuple[
+        bool,
+        str,
+        np.ndarray | None,
+        np.ndarray | None,
+        np.ndarray | None,
+        float | None,
+        bool,
+        bool,
+    ]:
         if anchor_result is None or anchor_result.detection is None:
-            return False, "object_anchor_not_detected", None, None, False, False
+            return (
+                False,
+                "object_anchor_not_detected",
+                None,
+                None,
+                None,
+                None,
+                False,
+                False,
+            )
         detected = True
         visibility = anchor_result.effective_visibility
         keypoints_valid = (
@@ -301,15 +484,43 @@ class ObjectAnchorPreviewSession:
             and float(reproj) <= float(self.settings.max_mean_reprojection_error_px)
         )
         if not keypoints_valid:
-            return False, "object_anchor_keypoints_invalid", None, reproj, detected, False
+            return (
+                False,
+                "object_anchor_keypoints_invalid",
+                None,
+                None,
+                None,
+                reproj,
+                detected,
+                False,
+            )
         if not pnp_valid:
-            return False, pose.reason or "object_anchor_pnp_invalid", None, reproj, detected, False
+            return (
+                False,
+                pose.reason or "object_anchor_pnp_invalid",
+                None,
+                None,
+                None,
+                reproj,
+                detected,
+                False,
+            )
         raw = np.asarray(pose.T_camera_object, dtype=np.float64)
         self.pose_history.append(raw.copy())
-        filtered = causal_filter_pose(
+        filtered_raw = causal_filter_pose(
             list(self.pose_history), self.settings.temporal_filter_window
         )
-        return True, "ok", filtered, float(reproj), detected, True
+        filtered_aligned = align_object_pose(filtered_raw, self.settings)
+        return (
+            True,
+            "ok",
+            raw,
+            filtered_raw,
+            filtered_aligned,
+            float(reproj),
+            detected,
+            True,
+        )
 
     def _maybe_reset_on_tag_jump(self, T_world_camera_tag: np.ndarray) -> bool:
         previous = self.previous_T_world_camera_tag
@@ -373,6 +584,10 @@ class ObjectAnchorPreviewSession:
             "config_path": self.config_path,
             "model_name": self.settings.model_name,
             "temporal_filter_window": self.settings.temporal_filter_window,
+            "pose_convention": "aligned_to_apriltag",
+            "T_object_raw_to_aligned": object_frame_alignment_transform(
+                self.settings
+            ).tolist(),
         }
         path = self.output_dir / "session_calibration.json"
         path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -405,9 +620,16 @@ class ObjectAnchorPreviewSession:
             else None
         )
 
-        oa_ok, oa_reason, T_camera_object_filtered, reproj, oa_detected, kpts_ok = (
-            self._object_anchor_sample_ok(anchor_result)
-        )
+        (
+            oa_ok,
+            oa_reason,
+            T_camera_object_raw,
+            T_camera_object_filtered_raw,
+            T_camera_object_aligned,
+            reproj,
+            oa_detected,
+            kpts_ok,
+        ) = self._object_anchor_sample_ok(anchor_result)
         pnp_valid = oa_ok
 
         cup_depth_valid = bool(
@@ -426,18 +648,18 @@ class ObjectAnchorPreviewSession:
         if (
             self.calibrating
             and T_world_camera_tag is not None
-            and T_camera_object_filtered is not None
+            and T_camera_object_aligned is not None
             and oa_ok
         ):
-            sample = T_world_camera_tag @ T_camera_object_filtered
+            sample = T_world_camera_tag @ T_camera_object_aligned
             self.calibration_samples.append(sample)
             if len(self.calibration_samples) >= self.settings.calibration_samples:
                 self._finalize_calibration()
 
         T_world_camera_object = None
-        if self.T_world_object_preview is not None and T_camera_object_filtered is not None:
+        if self.T_world_object_preview is not None and T_camera_object_aligned is not None:
             T_world_camera_object = self.T_world_object_preview @ np.linalg.inv(
-                T_camera_object_filtered
+                T_camera_object_aligned
             )
 
         p_world_cup_tag = None
@@ -503,7 +725,7 @@ class ObjectAnchorPreviewSession:
                 object_status = "CALIBRATION REQUIRED"
                 preview_state = "CALIBRATION_REQUIRED"
         elif not oa_detected:
-            object_status = "LOST"
+            object_status = "LOST OBJECT"
             preview_state = "LOST"
         elif not oa_ok:
             object_status = "INVALID" if cup_detected else "WAITING"
@@ -512,7 +734,7 @@ class ObjectAnchorPreviewSession:
             if cup_detected and not cup_depth_valid:
                 object_status = "INVALID DEPTH"
             else:
-                object_status = "WAITING"
+                object_status = "READY"
             preview_state = "ACTIVE"
         else:
             object_status = "ACTIVE"
@@ -548,6 +770,11 @@ class ObjectAnchorPreviewSession:
             calibration_target=self.settings.calibration_samples,
             display_source=self.display_source,
             show_panel=self.show_panel,
+            fps=fps,
+            debug_overlay_enabled=self.debug_overlay_enabled,
+            T_camera_object_raw=T_camera_object_raw,
+            T_camera_object_filtered_raw=T_camera_object_filtered_raw,
+            T_camera_object_aligned=T_camera_object_aligned,
             note=note,
             camera_translation_diff_cm=camera_translation_diff_cm,
             camera_rotation_diff_deg=camera_rotation_diff_deg,
@@ -566,6 +793,23 @@ class ObjectAnchorPreviewSession:
                 "" if reproj is None else f"{reproj:.4f}"
             ),
             "object_anchor_filter_window": self.settings.temporal_filter_window,
+            "T_camera_object_raw_json": (
+                ""
+                if T_camera_object_raw is None
+                else json.dumps(T_camera_object_raw.tolist(), separators=(",", ":"))
+            ),
+            "T_camera_object_filtered_raw_json": (
+                ""
+                if T_camera_object_filtered_raw is None
+                else json.dumps(
+                    T_camera_object_filtered_raw.tolist(), separators=(",", ":")
+                )
+            ),
+            "T_camera_object_aligned_json": (
+                ""
+                if T_camera_object_aligned is None
+                else json.dumps(T_camera_object_aligned.tolist(), separators=(",", ":"))
+            ),
             "preview_state": preview_state,
             "preview_calibration_count": len(self.calibration_samples),
             "cup_detected": bool(cup_detected),
@@ -670,6 +914,9 @@ class ObjectAnchorPreviewSession:
             "display_source_final": self.display_source,
             "auto_switch_world_source": self.settings.auto_switch_world_source,
             "persist_calibration": self.settings.persist_calibration,
+            "object_frame_aligned_to_apriltag": (
+                self.settings.align_object_frame_to_apriltag
+            ),
             "output_dir": str(self.output_dir) if self.output_dir is not None else None,
         }
 
@@ -723,7 +970,9 @@ def draw_preview_banner(image_bgr: np.ndarray, view: PreviewFrameView) -> np.nda
     title_color = accent
     put(0, 0, view.banner_title, title_color)
     put(1, 0, f"DISPLAY SOURCE: {view.display_source}", accent)
-    put(2, 0, view.note[:50] if view.note else "MVP DEMO / PREVIEW", accent)
+    fps_text = "FPS: N/A" if view.fps is None else f"FPS: {view.fps:.1f}"
+    debug_text = " | DEBUG: ON" if view.debug_overlay_enabled else ""
+    put(2, 0, fps_text + debug_text, accent)
 
     # AprilTag column
     april_color = ok if view.april_status == "ACTIVE" else warn
@@ -782,7 +1031,7 @@ def draw_preview_banner(image_bgr: np.ndarray, view: PreviewFrameView) -> np.nda
     put(
         0,
         6 if panel_h >= 140 else 5,
-        "Keys: C=calibrate  R=reset  O=source  P=panel  Q=quit",
+        "Keys: C=calibrate R=reset O=source P=panel D=debug Q=quit",
         (160, 160, 160),
     )
     return out

@@ -18,6 +18,7 @@ def draw_object_anchor_keypoints(
     visibility: np.ndarray | None = None,
     show_confidence_visibility: bool = False,
     show_names: bool = False,
+    show_labels: bool = True,
     skeleton_crossed: bool = False,
 ) -> np.ndarray:
     canvas = image_bgr.copy()
@@ -58,20 +59,21 @@ def draw_object_anchor_keypoints(
             color = (120, 120, 120)
         cv2.circle(canvas, center, 6, color, -1, cv2.LINE_AA)
         cv2.circle(canvas, center, 8, (20, 20, 20), 1, cv2.LINE_AA)
-        name = config.keypoints[index].name if show_names else ""
-        label = f"{index}:{name}" if name else str(index)
-        if show_confidence_visibility:
-            label = f"{label} c={confidence_values[index]:.2f} v={visible}"
-        cv2.putText(
-            canvas,
-            label,
-            (center[0] + 9, center[1] - 7),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.42,
-            color,
-            1,
-            cv2.LINE_AA,
-        )
+        if show_labels:
+            name = config.keypoints[index].name if show_names else ""
+            label = f"{index}:{name}" if name else str(index)
+            if show_confidence_visibility:
+                label = f"{label} c={confidence_values[index]:.2f} v={visible}"
+            cv2.putText(
+                canvas,
+                label,
+                (center[0] + 9, center[1] - 7),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.42,
+                color,
+                1,
+                cv2.LINE_AA,
+            )
     return canvas
 
 

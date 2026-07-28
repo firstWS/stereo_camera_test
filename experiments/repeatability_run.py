@@ -116,6 +116,7 @@ from object_anchor_preview import (  # noqa: E402
     ObjectAnchorPreviewSession,
     PreviewFrameView,
     build_preview_session,
+    draw_object_preview_axes,
     draw_preview_banner,
     load_preview_settings,
 )
@@ -253,6 +254,8 @@ def _annotate_left(
     left_bgr: np.ndarray,
     boxes_depths: list[tuple[Any, ...]],
     extra_lines: list[str] | None = None,
+    *,
+    debug_overlay_enabled: bool = True,
 ) -> np.ndarray:
     """Draw boxes plus camera/world coordinates, when available."""
     vis = left_bgr.copy()
@@ -310,39 +313,40 @@ def _annotate_left(
             else:
                 xyz_line = "X=--- Y=--- Z=---"
             xyz_line = xyz_line[:80]
-            (tw, th), bl = cv2.getTextSize(xyz_line, font_face, fs, tk)
-            tx = int(round(cx_f - tw * 0.5))
-            ty = int(round(cy_f + th * 0.5 - bl))
-            for ox2, oy2 in (
-                (-3, -3),
-                (-3, 3),
-                (3, -3),
-                (3, 3),
-                (-4, 0),
-                (4, 0),
-                (0, -4),
-                (0, 4),
-            ):
+            if debug_overlay_enabled:
+                (tw, th), bl = cv2.getTextSize(xyz_line, font_face, fs, tk)
+                tx = int(round(cx_f - tw * 0.5))
+                ty = int(round(cy_f + th * 0.5 - bl))
+                for ox2, oy2 in (
+                    (-3, -3),
+                    (-3, 3),
+                    (3, -3),
+                    (3, 3),
+                    (-4, 0),
+                    (4, 0),
+                    (0, -4),
+                    (0, 4),
+                ):
+                    cv2.putText(
+                        vis,
+                        xyz_line,
+                        (tx + ox2, ty + oy2),
+                        font_face,
+                        fs,
+                        (0, 0, 0),
+                        tk + 1,
+                        cv2.LINE_AA,
+                    )
                 cv2.putText(
                     vis,
                     xyz_line,
-                    (tx + ox2, ty + oy2),
+                    (tx, ty),
                     font_face,
                     fs,
-                    (0, 0, 0),
-                    tk + 1,
+                    color,
+                    tk,
                     cv2.LINE_AA,
                 )
-            cv2.putText(
-                vis,
-                xyz_line,
-                (tx, ty),
-                font_face,
-                fs,
-                color,
-                tk,
-                cv2.LINE_AA,
-            )
 
         est_a0, est_b0 = boxes_depths[0][1], boxes_depths[0][2]
         world0 = boxes_depths[0][3] if len(boxes_depths[0]) > 3 else None
@@ -373,9 +377,9 @@ def _annotate_left(
             lines.append(f"[#0] B: {notes_b}"[:80])
         if len(boxes_depths) > 1:
             lines.append(f"{len(boxes_depths)} objects (see labels on boxes)")
-    if extra_lines:
+    if extra_lines and debug_overlay_enabled:
         lines.extend(extra_lines)
-    for i, line in enumerate(lines):
+    for i, line in enumerate(lines if debug_overlay_enabled else []):
         cv2.putText(
             vis,
             line,
@@ -529,6 +533,7 @@ def _preview_tick(
     scalar_depth_m: np.ndarray | None = None,
     post_annotate: Any | None = None,
     key_handler: Any | None = None,
+    debug_overlay_enabled: bool = True,
 ) -> bool:
     """
     미리보기: **창 2개** — (1) ``preview.combined_side_by_side_stereo`` 가 참이면 정류 ``좌|우`` 가로 합성,
@@ -565,7 +570,12 @@ def _preview_tick(
 
     hl, wl = rect.left_bgr.shape[:2]
     lb = overlay_left_bgr if overlay_left_bgr is not None else rect.left_bgr
-    overlay_left_full = _annotate_left(lb, boxes_depths, extra_lines=extra_lines)
+    overlay_left_full = _annotate_left(
+        lb,
+        boxes_depths,
+        extra_lines=extra_lines,
+        debug_overlay_enabled=debug_overlay_enabled,
+    )
     if callable(post_annotate):
         overlay_left_full = post_annotate(overlay_left_full)
     combined_visual = (
@@ -748,6 +758,9 @@ def _preview_display_world(
 def _oa_preview_hooks(
     oa_preview: ObjectAnchorPreviewSession | None,
     view: PreviewFrameView | None,
+    camera_matrix: np.ndarray | None = None,
+    dist_coeffs: np.ndarray | None = None,
+    axis_length_m: float = 0.08,
 ) -> tuple[Any | None, Any | None]:
     if oa_preview is None:
         return None, None
@@ -755,6 +768,15 @@ def _oa_preview_hooks(
     def _post(image: np.ndarray) -> np.ndarray:
         if view is None:
             return image
+        if camera_matrix is not None:
+            image = draw_object_preview_axes(
+                image,
+                view,
+                camera_matrix,
+                dist_coeffs,
+                oa_preview.settings,
+                axis_length_m=axis_length_m,
+            )
         return draw_preview_banner(image, view)
 
     def _keys(key: int) -> None:
@@ -1297,11 +1319,18 @@ def _run_session_orbbec(
                         draw_on_bgr=left_vis_bgr if atw_cfg.draw else None,
                     )
                 if object_anchor_runtime is not None:
+                    preview_debug = (
+                        oa_preview.debug_overlay_enabled
+                        if oa_preview is not None
+                        else True
+                    )
                     object_anchor_result = object_anchor_runtime.process(
                         rgb,
                         K,
                         fr.dist_coeffs,
                         draw_on_bgr=left_vis_bgr,
+                        debug_overlay=preview_debug,
+                        draw_pose_axis=oa_preview is None,
                     )
                     left_vis_bgr = object_anchor_result.overlay_bgr
                     object_anchor_lines = object_anchor_runtime.overlay_lines(
@@ -1335,7 +1364,18 @@ def _run_session_orbbec(
                             overlay_bgr=left_vis_bgr,
                         )
                     disp_ms_track = (time.perf_counter() - t_depth0) * 1000.0
-                    post_annotate, key_handler = _oa_preview_hooks(oa_preview, preview_view)
+                    post_annotate, key_handler = _oa_preview_hooks(
+                        oa_preview,
+                        preview_view,
+                        K,
+                        fr.dist_coeffs,
+                        axis_length_m=min(
+                            object_anchor_runtime.config.size.values()
+                        )
+                        * 0.7
+                        if object_anchor_runtime is not None
+                        else 0.08,
+                    )
                     if preview_enabled:
                         if _preview_tick(
                             preview_cfg,
@@ -1356,6 +1396,11 @@ def _run_session_orbbec(
                             else None,
                             post_annotate=post_annotate,
                             key_handler=key_handler,
+                            debug_overlay_enabled=(
+                                oa_preview.debug_overlay_enabled
+                                if oa_preview is not None
+                                else True
+                            ),
                         ):
                             break
                     if idx >= warmup:
@@ -1452,7 +1497,15 @@ def _run_session_orbbec(
                     )
                     for bi, (b, _, ea, eb, wp) in enumerate(rows_payload)
                 ]
-                post_annotate, key_handler = _oa_preview_hooks(oa_preview, preview_view)
+                post_annotate, key_handler = _oa_preview_hooks(
+                    oa_preview,
+                    preview_view,
+                    K,
+                    fr.dist_coeffs,
+                    axis_length_m=min(object_anchor_runtime.config.size.values()) * 0.7
+                    if object_anchor_runtime is not None
+                    else 0.08,
+                )
 
                 if preview_enabled:
                     if _preview_tick(
@@ -1468,6 +1521,11 @@ def _run_session_orbbec(
                         scalar_depth_m=depth_m,
                         post_annotate=post_annotate,
                         key_handler=key_handler,
+                        debug_overlay_enabled=(
+                            oa_preview.debug_overlay_enabled
+                            if oa_preview is not None
+                            else True
+                        ),
                     ):
                         break
 

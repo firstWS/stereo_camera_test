@@ -10,3 +10,5 @@ yolov8*.pt
 yolo11*.pt
 calibration/stereo_calib.yaml
 calibration/rectify_maps_map*.npy
+data/
+Log/

@@ -90,6 +90,21 @@ object_anchor_preview:
   reset_calibration_key: r
   switch_display_source_key: o
   toggle_panel_key: p
+  debug_overlay_enabled: false
+  debug_overlay_toggle_key: d
+  # Raw tissue frame: +X right, +Y front-to-back, +Z up.
+  # AprilTag frame: +X right, +Y up, +Z out of the front face.
+  # Columns are aligned axes expressed in the raw object frame: (+X, +Z, -Y).
+  align_object_frame_to_apriltag: true
+  object_frame_alignment:
+    source: convention
+    translation_m: [0.0, 0.0, 0.0]
+    rotation_matrix:
+      - [1.0, 0.0, 0.0]
+      - [0.0, 0.0, -1.0]
+      - [0.0, 1.0, 0.0]
+  draw_raw_object_axis_in_debug: true
+  draw_aligned_object_axis: true
   save_preview_logs: true
   auto_switch_world_source: false
   persist_calibration: false
