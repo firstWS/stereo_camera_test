@@ -1,0 +1,12 @@
+{
+  "verified_at": "2026-07-29T06:08:48.232557+00:00",
+  "operating_code_and_config_hashes_unchanged": true,
+  "dataset_pairing_unchanged": true,
+  "protected_model_hashes_unchanged": true,
+  "runtime_dependency_missing": [],
+  "archive_integrity_errors": [],
+  "stale_code_config_test_doc_references": [],
+  "archive_file_count": 1402,
+  "archive_size_bytes": 590729569,
+  "venv_present": true
+}

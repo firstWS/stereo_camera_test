@@ -12,3 +12,8 @@ calibration/stereo_calib.yaml
 calibration/rectify_maps_map*.npy
 data/
 Log/
+
+# Local Object Anchor R&D archive; keep only recovery metadata in Git.
+archive_local/rnd_20260729/*
+!archive_local/rnd_20260729/README.md
+!archive_local/rnd_20260729/archive_manifest.csv

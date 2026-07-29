@@ -1,0 +1,105 @@
+{
+  "captured_at": "2026-07-29T06:07:38.611743+00:00",
+  "tree": {
+    "captured_at": "2026-07-29T06:07:40.501220+00:00",
+    "total_including_archive": {
+      "file_count": 24578,
+      "size_bytes": 2443220320
+    },
+    "working_area_excluding_archive": {
+      "file_count": 23172,
+      "size_bytes": 1851333421
+    },
+    "areas": {
+      "src": {
+        "file_count": 26,
+        "size_bytes": 184800
+      },
+      "experiments": {
+        "file_count": 4,
+        "size_bytes": 248742
+      },
+      "configs": {
+        "file_count": 12,
+        "size_bytes": 26182
+      },
+      "data": {
+        "file_count": 1240,
+        "size_bytes": 432243906
+      },
+      "models": {
+        "file_count": 3,
+        "size_bytes": 16876120
+      },
+      "out": {
+        "file_count": 521,
+        "size_bytes": 152481696
+      },
+      ".venv": {
+        "file_count": 21261,
+        "size_bytes": 1129714426
+      }
+    }
+  },
+  "operating_hashes": {
+    "configs/orbbec_gemini.yaml": "5649f296016daadf973eaf0de18105ac19faa65e649ac3ecacc41825bd153fa0",
+    "experiments/repeatability_run.py": "41f70b0dae0935735961b52250801da0ef9d4331d66b7b11a49b3044ad721ede",
+    "run.ps1": "5cf4aa1f30b2d1026c642f45164a700fd4bad268626b1542cf2c13e99f3bc5f8",
+    "src/__init__.py": "2610f554121b859b7a73d234c49dbb5be8fc8da5de7f9b705273c4d9296eb16c",
+    "src/apriltag_rgbd_validate.py": "9779d3cd3fac364ef582c7a54dc36ec7ec87fbc95171ea5f4bd57e4b3f9864ad",
+    "src/apriltag_scale.py": "f6b4a36f3ec42d3ea67d63a5af5fd30899ab42b35ba53104f6b7531cfe56bba5",
+    "src/apriltag_world.py": "381e3082082e744b660ed970556566e6d8d6e73f7c3a57a07c3c20d0b96a270a",
+    "src/calib_pipeline.py": "d3cb424d288709151c8b66bff603bcca10fc4faf0be72821d0384afec84a63e8",
+    "src/calibration_repository.py": "39c8f8e76d8790c067d79c46a46e0d84fecb3b54dd6369ce7091f4b32ae6c1ad",
+    "src/capture.py": "f0fbe15fa0f591939ac0545fe07694b875a740065d28ce3b2317b535a6026664",
+    "src/depth_dense.py": "a3ae8ba6394ff6fd78c049043b05188d75f9b8835aea970afbd56c5c6975ab8d",
+    "src/depth_sparse.py": "678c5f48b548a1c3b27b98d9198eb98e0e34682189e292dd89cac8a1858c8151",
+    "src/detect.py": "1a7d96aa3a60bd0583020ecf385b709b21bd539bc11b8b3d69055d96fe9a1428",
+    "src/object_anchor_capture.py": "0296c20043e1fc53a6918374d742f189f83c89ff8a633e93f2812653d661f4e2",
+    "src/object_anchor_config.py": "19ead46d91a83b9a37d9776e17a46cb75e066880590b0f0393b15d7649e7adfb",
+    "src/object_anchor_detector.py": "ee9111efe9904c562cfbd43977bc4f5a7da3637418a01d83a67d43602e140c56",
+    "src/object_anchor_geometry.py": "02c274100b892068da27a1785ef6b1ce29056ebe1df4ec8a36aff19f330e99b3",
+    "src/object_anchor_pose.py": "d29f0deae9332913eb3fce42c34a6c786a3b7971a8d4a2fac70573d731417b06",
+    "src/object_anchor_preview.py": "cc5eafa2b1dee1703288bfd76b21d70fa72b4367d4f43ec43a4af6850d664457",
+    "src/object_anchor_registration.py": "917c2b483ffdcb33c731f9590bb7f77dc8d2b024c94fd4064fd2c92176c2e839",
+    "src/object_anchor_runtime.py": "8e5c0dde5a89d2f9d5b74d234b55f7cd0e143c1af06ea4e6dab7a348123d40c1",
+    "src/object_anchor_visualizer.py": "2edfdc088590c93645453562b463bedf3215abcb8e51b216cace3edc928e131a",
+    "src/object_anchor_world.py": "15b1344487523f0e40d4d8d31bbfb9a9acf5d6832955f6a299092908199a81fc",
+    "src/orbbec_rgbd_capture.py": "96acfcc88496ac770f3b95f35f70e52cf3a4c578a2b9539eb1f19ae13fceb41a",
+    "src/rgbd_geometry.py": "fec9851bdd31d1a0225d1f48c17c78bd0cdb11379c5cad3832f09ba0de697ba9",
+    "src/split_rectify.py": "986c54392532b892a3da546503baa22aa3acd7b16bf8242ab60bf6a4cc285791",
+    "src/stereo_types.py": "511042c8f4c414b349608267226652d0c9feb872f5d4cc16cf6c3f1897db0351",
+    "src/triangulate.py": "8d649da2b3673c714c8b29d61d559f33e6b40de653fbc1115c71d98177695b7f",
+    "src/yolo_pose_sanitize.py": "9eaf992db8ca138f1c2ea787e8f4fc3a9c7c168fbfa201d366666731dd1968ac"
+  },
+  "dataset": {
+    "images": 223,
+    "labels": 223,
+    "missing_labels": [],
+    "orphan_labels": []
+  },
+  "models": {
+    "models/object_anchor/tissue_box_01_front_only/best.pt": {
+      "exists": true,
+      "size_bytes": 5643336,
+      "sha256": "d37fd4ca4deb2de9ee3b13d816e30496a5a5d0f369d8a8c2d902672aad6f6db4"
+    },
+    "models/object_anchor/tissue_box_01_front_only_orbbec_pilot/best.pt": {
+      "exists": true,
+      "size_bytes": 5613064,
+      "sha256": "1f33fa51c656f4b8fc3c3e92e9eb5d7d6ea0d886b8a0c71fc1b14ba94d8e80ad"
+    },
+    "models/object_anchor/tissue_box_01_front_only_orbbec_full99/best.pt": {
+      "exists": true,
+      "size_bytes": 5619720,
+      "sha256": "2512be192c87242633b5aec4ceba332937a51c82e3853bfbde83cdd8300dd198"
+    },
+    "yolo11s.pt": {
+      "exists": true,
+      "size_bytes": 19313732,
+      "sha256": "85a76fe86dd8afe384648546b56a7a78580c7cb7b404fc595f97969322d502d5"
+    }
+  },
+  "deleted_files": 8982,
+  "deleted_bytes": 547931863
+}
