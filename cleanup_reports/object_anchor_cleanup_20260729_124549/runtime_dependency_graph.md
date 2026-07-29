@@ -1,0 +1,327 @@
+# Runtime dependency graph
+
+Scope: static dependency closure for `.\run.ps1 -Orbbec`; camera was not opened.
+
+```text
+run.ps1
+  -> configs/orbbec_gemini.yaml
+  -> experiments/repeatability_run.py
+       -> src/* local runtime imports
+       -> Full99 Object Anchor model/config
+       -> YOLO Cup model
+       -> AprilTag/OpenCV pose pipeline
+       -> Orbbec RGB-D capture
+       -> session-only Object Anchor Preview logs
+```
+
+Direct live runtime files: **29**
+Setup + current regression closure: **52**
+Combined KEEP_RUNTIME dependency closure: **81**
+
+## Direct live runtime files
+- `configs/object_anchors/tissue_box_01_front_only.yaml`
+- `configs/orbbec_gemini.yaml`
+- `experiments/repeatability_run.py`
+- `models/object_anchor/tissue_box_01_front_only_orbbec_full99/best.pt`
+- `run.ps1`
+- `scripts/sync-session-path.ps1`
+- `src/apriltag_rgbd_validate.py`
+- `src/apriltag_scale.py`
+- `src/apriltag_world.py`
+- `src/calibration_repository.py`
+- `src/capture.py`
+- `src/depth_dense.py`
+- `src/depth_sparse.py`
+- `src/detect.py`
+- `src/object_anchor_capture.py`
+- `src/object_anchor_config.py`
+- `src/object_anchor_detector.py`
+- `src/object_anchor_geometry.py`
+- `src/object_anchor_pose.py`
+- `src/object_anchor_preview.py`
+- `src/object_anchor_registration.py`
+- `src/object_anchor_runtime.py`
+- `src/object_anchor_visualizer.py`
+- `src/object_anchor_world.py`
+- `src/orbbec_rgbd_capture.py`
+- `src/rgbd_geometry.py`
+- `src/stereo_types.py`
+- `src/triangulate.py`
+- `yolo11s.pt`
+
+## Setup and current regression support
+- `calibration/stereo_calib.yaml`
+- `experiments/object_anchor_mvp_final_comparison.py`
+- `experiments/object_anchor_replacement_feasibility.py`
+- `out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/README.md`
+- `out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/branch_frame_assignments.csv`
+- `out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/branch_registration_samples.csv`
+- `out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/branch_registration_summary.json`
+- `out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/branch_validation_comparison.csv`
+- `out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/branch_validation_summary.json`
+- `out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/cross_branch_diagnostics.json`
+- `out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/mvp_final_decision.json`
+- `out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/source_data_inventory.json`
+- `out/object_anchor_full99/mvp_final_comparison/20260726_163325/README.md`
+- `out/object_anchor_full99/mvp_final_comparison/20260726_163325/config_snapshot.yaml`
+- `out/object_anchor_full99/mvp_final_comparison/20260726_163325/mvp_final_decision.json`
+- `out/object_anchor_full99/mvp_final_comparison/20260726_163325/reference_cluster_frames.csv`
+- `out/object_anchor_full99/mvp_final_comparison/20260726_172325/README.md`
+- `out/object_anchor_full99/mvp_final_comparison/20260726_172325/branch_assignment_summary.json`
+- `out/object_anchor_full99/mvp_final_comparison/20260726_172325/config_snapshot.yaml`
+- `out/object_anchor_full99/mvp_final_comparison/20260726_172325/mvp_final_decision.json`
+- `out/object_anchor_full99/mvp_final_comparison/20260726_172325/preflight_summary.json`
+- `out/object_anchor_full99/mvp_final_comparison/20260726_172325/reference_cluster_frames.csv`
+- `out/object_anchor_full99/mvp_final_comparison/20260726_172325/registration/branch_1_tissue_box_relative_pose.yaml`
+- `out/object_anchor_full99/mvp_final_comparison/20260726_172325/registration/branch_prototypes.json`
+- `out/object_anchor_full99/mvp_final_comparison/20260726_172325/registration_samples.csv`
+- `out/object_anchor_full99/mvp_final_comparison/20260726_172325/registration_summary.json`
+- `requirements.txt`
+- `scripts/analyze_mvp_branch_aware_comparison.py`
+- `scripts/create_placeholder_calibration.py`
+- `scripts/diagnose_mvp_branch_mapping.py`
+- `scripts/diagnose_mvp_translation_filters.py`
+- `scripts/sanitize_yolo_pose_dataset.py`
+- `scripts/smoke_test.py`
+- `scripts/synthetic_object_anchor_test.py`
+- `scripts/verify_environment.py`
+- `setup.ps1`
+- `src/calib_pipeline.py`
+- `src/split_rectify.py`
+- `src/yolo_pose_sanitize.py`
+- `tests/test_front_only_sanitizer_cli.py`
+- `tests/test_mvp_branch_aware_comparison.py`
+- `tests/test_mvp_branch_mapping.py`
+- `tests/test_mvp_translation_filters.py`
+- `tests/test_object_anchor_capture.py`
+- `tests/test_object_anchor_mvp_final_comparison.py`
+- `tests/test_object_anchor_pose.py`
+- `tests/test_object_anchor_preview.py`
+- `tests/test_object_anchor_replacement_feasibility.py`
+- `tests/test_object_anchor_runtime.py`
+- `tests/test_object_anchor_world.py`
+- `tests/test_repeatability_preview_overlay.py`
+- `tests/test_yolo_pose_sanitize.py`
+
+## Static edges
+- `configs/orbbec_gemini.yaml` --selected_config_asset--> `configs/object_anchors/tissue_box_01_front_only.yaml`
+- `configs/orbbec_gemini.yaml` --selected_config_asset--> `models/object_anchor/tissue_box_01_front_only_orbbec_full99/best.pt`
+- `configs/orbbec_gemini.yaml` --selected_config_asset--> `yolo11s.pt`
+- `experiments/object_anchor_mvp_final_comparison.py` --python_import_or_explicit_module--> `experiments/object_anchor_replacement_feasibility.py`
+- `experiments/object_anchor_mvp_final_comparison.py` --python_import_or_explicit_module--> `experiments/repeatability_run.py`
+- `experiments/object_anchor_mvp_final_comparison.py` --python_import_or_explicit_module--> `src/apriltag_scale.py`
+- `experiments/object_anchor_mvp_final_comparison.py` --python_import_or_explicit_module--> `src/apriltag_world.py`
+- `experiments/object_anchor_mvp_final_comparison.py` --python_import_or_explicit_module--> `src/detect.py`
+- `experiments/object_anchor_mvp_final_comparison.py` --python_import_or_explicit_module--> `src/object_anchor_registration.py`
+- `experiments/object_anchor_mvp_final_comparison.py` --python_import_or_explicit_module--> `src/object_anchor_runtime.py`
+- `experiments/object_anchor_mvp_final_comparison.py` --python_import_or_explicit_module--> `src/object_anchor_world.py`
+- `experiments/object_anchor_mvp_final_comparison.py` --python_import_or_explicit_module--> `src/orbbec_rgbd_capture.py`
+- `experiments/object_anchor_mvp_final_comparison.py` --python_import_or_explicit_module--> `src/rgbd_geometry.py`
+- `experiments/object_anchor_replacement_feasibility.py` --python_import_or_explicit_module--> `experiments/repeatability_run.py`
+- `experiments/object_anchor_replacement_feasibility.py` --python_import_or_explicit_module--> `src/apriltag_scale.py`
+- `experiments/object_anchor_replacement_feasibility.py` --python_import_or_explicit_module--> `src/apriltag_world.py`
+- `experiments/object_anchor_replacement_feasibility.py` --python_import_or_explicit_module--> `src/detect.py`
+- `experiments/object_anchor_replacement_feasibility.py` --python_import_or_explicit_module--> `src/object_anchor_registration.py`
+- `experiments/object_anchor_replacement_feasibility.py` --python_import_or_explicit_module--> `src/object_anchor_runtime.py`
+- `experiments/object_anchor_replacement_feasibility.py` --python_import_or_explicit_module--> `src/object_anchor_world.py`
+- `experiments/object_anchor_replacement_feasibility.py` --python_import_or_explicit_module--> `src/orbbec_rgbd_capture.py`
+- `experiments/object_anchor_replacement_feasibility.py` --python_import_or_explicit_module--> `src/rgbd_geometry.py`
+- `experiments/repeatability_run.py` --direct_python_import--> `src/apriltag_rgbd_validate.py`
+- `experiments/repeatability_run.py` --python_import_or_explicit_module--> `src/apriltag_rgbd_validate.py`
+- `experiments/repeatability_run.py` --direct_python_import--> `src/apriltag_scale.py`
+- `experiments/repeatability_run.py` --python_import_or_explicit_module--> `src/apriltag_scale.py`
+- `experiments/repeatability_run.py` --direct_python_import--> `src/apriltag_world.py`
+- `experiments/repeatability_run.py` --python_import_or_explicit_module--> `src/apriltag_world.py`
+- `experiments/repeatability_run.py` --direct_python_import--> `src/calibration_repository.py`
+- `experiments/repeatability_run.py` --python_import_or_explicit_module--> `src/calibration_repository.py`
+- `experiments/repeatability_run.py` --direct_python_import--> `src/capture.py`
+- `experiments/repeatability_run.py` --python_import_or_explicit_module--> `src/capture.py`
+- `experiments/repeatability_run.py` --direct_python_import--> `src/depth_dense.py`
+- `experiments/repeatability_run.py` --python_import_or_explicit_module--> `src/depth_dense.py`
+- `experiments/repeatability_run.py` --direct_python_import--> `src/depth_sparse.py`
+- `experiments/repeatability_run.py` --python_import_or_explicit_module--> `src/depth_sparse.py`
+- `experiments/repeatability_run.py` --direct_python_import--> `src/detect.py`
+- `experiments/repeatability_run.py` --python_import_or_explicit_module--> `src/detect.py`
+- `experiments/repeatability_run.py` --direct_python_import--> `src/object_anchor_capture.py`
+- `experiments/repeatability_run.py` --python_import_or_explicit_module--> `src/object_anchor_capture.py`
+- `experiments/repeatability_run.py` --direct_python_import--> `src/object_anchor_preview.py`
+- `experiments/repeatability_run.py` --python_import_or_explicit_module--> `src/object_anchor_preview.py`
+- `experiments/repeatability_run.py` --direct_python_import--> `src/object_anchor_runtime.py`
+- `experiments/repeatability_run.py` --python_import_or_explicit_module--> `src/object_anchor_runtime.py`
+- `experiments/repeatability_run.py` --direct_python_import--> `src/object_anchor_world.py`
+- `experiments/repeatability_run.py` --python_import_or_explicit_module--> `src/object_anchor_world.py`
+- `experiments/repeatability_run.py` --direct_python_import--> `src/orbbec_rgbd_capture.py`
+- `experiments/repeatability_run.py` --python_import_or_explicit_module--> `src/orbbec_rgbd_capture.py`
+- `experiments/repeatability_run.py` --direct_python_import--> `src/rgbd_geometry.py`
+- `experiments/repeatability_run.py` --python_import_or_explicit_module--> `src/rgbd_geometry.py`
+- `experiments/repeatability_run.py` --direct_python_import--> `src/stereo_types.py`
+- `experiments/repeatability_run.py` --python_import_or_explicit_module--> `src/stereo_types.py`
+- `run.ps1` --setup_or_explicit_path--> `calibration/stereo_calib.yaml`
+- `run.ps1` --setup_or_explicit_path--> `configs/object_anchors/tissue_box_01_front_only.yaml`
+- `run.ps1` --setup_or_explicit_path--> `requirements.txt`
+- `run.ps1` --setup_or_explicit_path--> `scripts/create_placeholder_calibration.py`
+- `run.ps1` --setup_or_explicit_path--> `scripts/smoke_test.py`
+- `run.ps1` --direct_powershell_source--> `scripts/sync-session-path.ps1`
+- `run.ps1` --setup_or_explicit_path--> `scripts/sync-session-path.ps1`
+- `run.ps1` --setup_or_explicit_path--> `scripts/synthetic_object_anchor_test.py`
+- `run.ps1` --setup_or_explicit_path--> `scripts/verify_environment.py`
+- `run.ps1` --setup_or_explicit_path--> `setup.ps1`
+- `scripts/analyze_mvp_branch_aware_comparison.py` --python_import_or_explicit_module--> `src/object_anchor_world.py`
+- `scripts/create_placeholder_calibration.py` --python_import_or_explicit_module--> `src/calib_pipeline.py`
+- `scripts/create_placeholder_calibration.py` --python_import_or_explicit_module--> `src/calibration_repository.py`
+- `scripts/diagnose_mvp_branch_mapping.py` --python_import_or_explicit_module--> `experiments/object_anchor_mvp_final_comparison.py`
+- `scripts/diagnose_mvp_branch_mapping.py` --python_import_or_explicit_module--> `src/apriltag_world.py`
+- `scripts/diagnose_mvp_branch_mapping.py` --python_import_or_explicit_module--> `src/object_anchor_pose.py`
+- `scripts/diagnose_mvp_branch_mapping.py` --python_import_or_explicit_module--> `src/object_anchor_runtime.py`
+- `scripts/diagnose_mvp_translation_filters.py` --python_import_or_explicit_module--> `experiments/object_anchor_mvp_final_comparison.py`
+- `scripts/diagnose_mvp_translation_filters.py` --python_import_or_explicit_module--> `src/object_anchor_world.py`
+- `scripts/sanitize_yolo_pose_dataset.py` --python_import_or_explicit_module--> `src/object_anchor_config.py`
+- `scripts/sanitize_yolo_pose_dataset.py` --python_import_or_explicit_module--> `src/yolo_pose_sanitize.py`
+- `scripts/smoke_test.py` --python_import_or_explicit_module--> `scripts/create_placeholder_calibration.py`
+- `scripts/smoke_test.py` --python_import_or_explicit_module--> `src/calibration_repository.py`
+- `scripts/smoke_test.py` --python_import_or_explicit_module--> `src/depth_dense.py`
+- `scripts/smoke_test.py` --python_import_or_explicit_module--> `src/depth_sparse.py`
+- `scripts/smoke_test.py` --python_import_or_explicit_module--> `src/detect.py`
+- `scripts/smoke_test.py` --python_import_or_explicit_module--> `src/split_rectify.py`
+- `scripts/smoke_test.py` --python_import_or_explicit_module--> `src/stereo_types.py`
+- `scripts/synthetic_object_anchor_test.py` --python_import_or_explicit_module--> `src/object_anchor_config.py`
+- `scripts/synthetic_object_anchor_test.py` --python_import_or_explicit_module--> `src/object_anchor_pose.py`
+- `scripts/synthetic_object_anchor_test.py` --python_import_or_explicit_module--> `src/object_anchor_visualizer.py`
+- `setup.ps1` --regression_fixture--> `out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/README.md`
+- `setup.ps1` --regression_fixture--> `out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/branch_frame_assignments.csv`
+- `setup.ps1` --regression_fixture--> `out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/branch_registration_samples.csv`
+- `setup.ps1` --regression_fixture--> `out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/branch_registration_summary.json`
+- `setup.ps1` --regression_fixture--> `out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/branch_validation_comparison.csv`
+- `setup.ps1` --regression_fixture--> `out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/branch_validation_summary.json`
+- `setup.ps1` --regression_fixture--> `out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/cross_branch_diagnostics.json`
+- `setup.ps1` --regression_fixture--> `out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/mvp_final_decision.json`
+- `setup.ps1` --regression_fixture--> `out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/source_data_inventory.json`
+- `setup.ps1` --regression_fixture--> `out/object_anchor_full99/mvp_final_comparison/20260726_163325/README.md`
+- `setup.ps1` --regression_fixture--> `out/object_anchor_full99/mvp_final_comparison/20260726_163325/config_snapshot.yaml`
+- `setup.ps1` --regression_fixture--> `out/object_anchor_full99/mvp_final_comparison/20260726_163325/mvp_final_decision.json`
+- `setup.ps1` --regression_fixture--> `out/object_anchor_full99/mvp_final_comparison/20260726_163325/reference_cluster_frames.csv`
+- `setup.ps1` --regression_fixture--> `out/object_anchor_full99/mvp_final_comparison/20260726_172325/README.md`
+- `setup.ps1` --regression_fixture--> `out/object_anchor_full99/mvp_final_comparison/20260726_172325/branch_assignment_summary.json`
+- `setup.ps1` --regression_fixture--> `out/object_anchor_full99/mvp_final_comparison/20260726_172325/config_snapshot.yaml`
+- `setup.ps1` --regression_fixture--> `out/object_anchor_full99/mvp_final_comparison/20260726_172325/mvp_final_decision.json`
+- `setup.ps1` --regression_fixture--> `out/object_anchor_full99/mvp_final_comparison/20260726_172325/preflight_summary.json`
+- `setup.ps1` --regression_fixture--> `out/object_anchor_full99/mvp_final_comparison/20260726_172325/reference_cluster_frames.csv`
+- `setup.ps1` --regression_fixture--> `out/object_anchor_full99/mvp_final_comparison/20260726_172325/registration/branch_1_tissue_box_relative_pose.yaml`
+- `setup.ps1` --regression_fixture--> `out/object_anchor_full99/mvp_final_comparison/20260726_172325/registration/branch_prototypes.json`
+- `setup.ps1` --regression_fixture--> `out/object_anchor_full99/mvp_final_comparison/20260726_172325/registration_samples.csv`
+- `setup.ps1` --regression_fixture--> `out/object_anchor_full99/mvp_final_comparison/20260726_172325/registration_summary.json`
+- `setup.ps1` --full_test_suite--> `tests/test_front_only_sanitizer_cli.py`
+- `setup.ps1` --full_test_suite--> `tests/test_mvp_branch_aware_comparison.py`
+- `setup.ps1` --full_test_suite--> `tests/test_mvp_branch_mapping.py`
+- `setup.ps1` --full_test_suite--> `tests/test_mvp_translation_filters.py`
+- `setup.ps1` --full_test_suite--> `tests/test_object_anchor_capture.py`
+- `setup.ps1` --full_test_suite--> `tests/test_object_anchor_mvp_final_comparison.py`
+- `setup.ps1` --full_test_suite--> `tests/test_object_anchor_pose.py`
+- `setup.ps1` --full_test_suite--> `tests/test_object_anchor_preview.py`
+- `setup.ps1` --full_test_suite--> `tests/test_object_anchor_replacement_feasibility.py`
+- `setup.ps1` --full_test_suite--> `tests/test_object_anchor_runtime.py`
+- `setup.ps1` --full_test_suite--> `tests/test_object_anchor_world.py`
+- `setup.ps1` --full_test_suite--> `tests/test_repeatability_preview_overlay.py`
+- `setup.ps1` --full_test_suite--> `tests/test_yolo_pose_sanitize.py`
+- `src/apriltag_rgbd_validate.py` --direct_python_import--> `src/apriltag_scale.py`
+- `src/apriltag_rgbd_validate.py` --python_import_or_explicit_module--> `src/apriltag_scale.py`
+- `src/apriltag_rgbd_validate.py` --direct_python_import--> `src/rgbd_geometry.py`
+- `src/apriltag_rgbd_validate.py` --python_import_or_explicit_module--> `src/rgbd_geometry.py`
+- `src/apriltag_scale.py` --direct_python_import--> `src/stereo_types.py`
+- `src/apriltag_scale.py` --python_import_or_explicit_module--> `src/stereo_types.py`
+- `src/apriltag_scale.py` --direct_python_import--> `src/triangulate.py`
+- `src/apriltag_scale.py` --python_import_or_explicit_module--> `src/triangulate.py`
+- `src/apriltag_world.py` --direct_python_import--> `src/apriltag_scale.py`
+- `src/apriltag_world.py` --python_import_or_explicit_module--> `src/apriltag_scale.py`
+- `src/apriltag_world.py` --direct_python_import--> `src/stereo_types.py`
+- `src/apriltag_world.py` --python_import_or_explicit_module--> `src/stereo_types.py`
+- `src/calib_pipeline.py` --python_import_or_explicit_module--> `src/calibration_repository.py`
+- `src/capture.py` --direct_python_import--> `src/stereo_types.py`
+- `src/capture.py` --python_import_or_explicit_module--> `src/stereo_types.py`
+- `src/depth_dense.py` --direct_python_import--> `src/stereo_types.py`
+- `src/depth_dense.py` --python_import_or_explicit_module--> `src/stereo_types.py`
+- `src/depth_dense.py` --direct_python_import--> `src/triangulate.py`
+- `src/depth_dense.py` --python_import_or_explicit_module--> `src/triangulate.py`
+- `src/depth_sparse.py` --direct_python_import--> `src/stereo_types.py`
+- `src/depth_sparse.py` --python_import_or_explicit_module--> `src/stereo_types.py`
+- `src/depth_sparse.py` --direct_python_import--> `src/triangulate.py`
+- `src/depth_sparse.py` --python_import_or_explicit_module--> `src/triangulate.py`
+- `src/detect.py` --direct_python_import--> `src/stereo_types.py`
+- `src/detect.py` --python_import_or_explicit_module--> `src/stereo_types.py`
+- `src/object_anchor_pose.py` --direct_python_import--> `src/object_anchor_config.py`
+- `src/object_anchor_pose.py` --python_import_or_explicit_module--> `src/object_anchor_config.py`
+- `src/object_anchor_preview.py` --direct_python_import--> `src/apriltag_world.py`
+- `src/object_anchor_preview.py` --python_import_or_explicit_module--> `src/apriltag_world.py`
+- `src/object_anchor_preview.py` --direct_python_import--> `src/object_anchor_runtime.py`
+- `src/object_anchor_preview.py` --python_import_or_explicit_module--> `src/object_anchor_runtime.py`
+- `src/object_anchor_preview.py` --direct_python_import--> `src/object_anchor_world.py`
+- `src/object_anchor_preview.py` --python_import_or_explicit_module--> `src/object_anchor_world.py`
+- `src/object_anchor_preview.py` --direct_python_import--> `src/stereo_types.py`
+- `src/object_anchor_preview.py` --python_import_or_explicit_module--> `src/stereo_types.py`
+- `src/object_anchor_runtime.py` --direct_python_import--> `src/object_anchor_config.py`
+- `src/object_anchor_runtime.py` --python_import_or_explicit_module--> `src/object_anchor_config.py`
+- `src/object_anchor_runtime.py` --direct_python_import--> `src/object_anchor_detector.py`
+- `src/object_anchor_runtime.py` --python_import_or_explicit_module--> `src/object_anchor_detector.py`
+- `src/object_anchor_runtime.py` --direct_python_import--> `src/object_anchor_geometry.py`
+- `src/object_anchor_runtime.py` --python_import_or_explicit_module--> `src/object_anchor_geometry.py`
+- `src/object_anchor_runtime.py` --direct_python_import--> `src/object_anchor_pose.py`
+- `src/object_anchor_runtime.py` --python_import_or_explicit_module--> `src/object_anchor_pose.py`
+- `src/object_anchor_runtime.py` --direct_python_import--> `src/object_anchor_visualizer.py`
+- `src/object_anchor_runtime.py` --python_import_or_explicit_module--> `src/object_anchor_visualizer.py`
+- `src/object_anchor_visualizer.py` --direct_python_import--> `src/object_anchor_config.py`
+- `src/object_anchor_visualizer.py` --python_import_or_explicit_module--> `src/object_anchor_config.py`
+- `src/object_anchor_visualizer.py` --direct_python_import--> `src/object_anchor_pose.py`
+- `src/object_anchor_visualizer.py` --python_import_or_explicit_module--> `src/object_anchor_pose.py`
+- `src/object_anchor_world.py` --direct_python_import--> `src/apriltag_world.py`
+- `src/object_anchor_world.py` --python_import_or_explicit_module--> `src/apriltag_world.py`
+- `src/object_anchor_world.py` --direct_python_import--> `src/object_anchor_pose.py`
+- `src/object_anchor_world.py` --python_import_or_explicit_module--> `src/object_anchor_pose.py`
+- `src/object_anchor_world.py` --direct_python_import--> `src/object_anchor_registration.py`
+- `src/object_anchor_world.py` --python_import_or_explicit_module--> `src/object_anchor_registration.py`
+- `src/object_anchor_world.py` --direct_python_import--> `src/object_anchor_runtime.py`
+- `src/object_anchor_world.py` --python_import_or_explicit_module--> `src/object_anchor_runtime.py`
+- `src/rgbd_geometry.py` --direct_python_import--> `src/stereo_types.py`
+- `src/rgbd_geometry.py` --python_import_or_explicit_module--> `src/stereo_types.py`
+- `src/split_rectify.py` --python_import_or_explicit_module--> `src/calibration_repository.py`
+- `src/split_rectify.py` --python_import_or_explicit_module--> `src/stereo_types.py`
+- `tests/test_front_only_sanitizer_cli.py` --python_import_or_explicit_module--> `scripts/sanitize_yolo_pose_dataset.py`
+- `tests/test_mvp_branch_aware_comparison.py` --python_import_or_explicit_module--> `scripts/analyze_mvp_branch_aware_comparison.py`
+- `tests/test_mvp_branch_mapping.py` --python_import_or_explicit_module--> `experiments/object_anchor_mvp_final_comparison.py`
+- `tests/test_mvp_branch_mapping.py` --python_import_or_explicit_module--> `scripts/diagnose_mvp_branch_mapping.py`
+- `tests/test_mvp_translation_filters.py` --python_import_or_explicit_module--> `experiments/object_anchor_mvp_final_comparison.py`
+- `tests/test_mvp_translation_filters.py` --python_import_or_explicit_module--> `scripts/diagnose_mvp_translation_filters.py`
+- `tests/test_mvp_translation_filters.py` --python_import_or_explicit_module--> `src/apriltag_world.py`
+- `tests/test_mvp_translation_filters.py` --python_import_or_explicit_module--> `src/object_anchor_pose.py`
+- `tests/test_mvp_translation_filters.py` --python_import_or_explicit_module--> `src/object_anchor_runtime.py`
+- `tests/test_object_anchor_capture.py` --python_import_or_explicit_module--> `src/object_anchor_capture.py`
+- `tests/test_object_anchor_mvp_final_comparison.py` --python_import_or_explicit_module--> `experiments/object_anchor_mvp_final_comparison.py`
+- `tests/test_object_anchor_pose.py` --python_import_or_explicit_module--> `src/object_anchor_config.py`
+- `tests/test_object_anchor_pose.py` --python_import_or_explicit_module--> `src/object_anchor_pose.py`
+- `tests/test_object_anchor_preview.py` --python_import_or_explicit_module--> `experiments/repeatability_run.py`
+- `tests/test_object_anchor_preview.py` --python_import_or_explicit_module--> `src/apriltag_world.py`
+- `tests/test_object_anchor_preview.py` --python_import_or_explicit_module--> `src/object_anchor_pose.py`
+- `tests/test_object_anchor_preview.py` --python_import_or_explicit_module--> `src/object_anchor_preview.py`
+- `tests/test_object_anchor_preview.py` --python_import_or_explicit_module--> `src/object_anchor_runtime.py`
+- `tests/test_object_anchor_preview.py` --python_import_or_explicit_module--> `src/stereo_types.py`
+- `tests/test_object_anchor_replacement_feasibility.py` --python_import_or_explicit_module--> `experiments/object_anchor_replacement_feasibility.py`
+- `tests/test_object_anchor_replacement_feasibility.py` --python_import_or_explicit_module--> `src/detect.py`
+- `tests/test_object_anchor_replacement_feasibility.py` --python_import_or_explicit_module--> `src/object_anchor_detector.py`
+- `tests/test_object_anchor_replacement_feasibility.py` --python_import_or_explicit_module--> `src/object_anchor_world.py`
+- `tests/test_object_anchor_runtime.py` --python_import_or_explicit_module--> `src/object_anchor_config.py`
+- `tests/test_object_anchor_runtime.py` --python_import_or_explicit_module--> `src/object_anchor_detector.py`
+- `tests/test_object_anchor_runtime.py` --python_import_or_explicit_module--> `src/object_anchor_pose.py`
+- `tests/test_object_anchor_runtime.py` --python_import_or_explicit_module--> `src/object_anchor_registration.py`
+- `tests/test_object_anchor_runtime.py` --python_import_or_explicit_module--> `src/object_anchor_runtime.py`
+- `tests/test_object_anchor_world.py` --python_import_or_explicit_module--> `src/apriltag_world.py`
+- `tests/test_object_anchor_world.py` --python_import_or_explicit_module--> `src/object_anchor_detector.py`
+- `tests/test_object_anchor_world.py` --python_import_or_explicit_module--> `src/object_anchor_geometry.py`
+- `tests/test_object_anchor_world.py` --python_import_or_explicit_module--> `src/object_anchor_pose.py`
+- `tests/test_object_anchor_world.py` --python_import_or_explicit_module--> `src/object_anchor_runtime.py`
+- `tests/test_object_anchor_world.py` --python_import_or_explicit_module--> `src/object_anchor_world.py`
+- `tests/test_repeatability_preview_overlay.py` --python_import_or_explicit_module--> `experiments/repeatability_run.py`
+- `tests/test_yolo_pose_sanitize.py` --python_import_or_explicit_module--> `src/object_anchor_config.py`
+- `tests/test_yolo_pose_sanitize.py` --python_import_or_explicit_module--> `src/yolo_pose_sanitize.py`
+
+## Important boundary
+- Display source switching is Preview-only; operational world CSV/source remains AprilTag.
+- `session_calibration.json` is an output record and is never auto-loaded as operational calibration.

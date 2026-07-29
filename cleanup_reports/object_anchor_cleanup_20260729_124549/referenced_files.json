@@ -1,0 +1,1867 @@
+{
+  "generated_at_utc": "2026-07-29T04:00:30.328456+00:00",
+  "method": {
+    "python_imports": "AST import/import-from resolution against local modules",
+    "config_paths": "recursive YAML scalar path resolution",
+    "string_paths": "path-like token and unique basename matching",
+    "limitations": [
+      "Computed runtime plugin names and arbitrary runtime-generated paths may require manual review.",
+      "References inside binary files and text files over 5 MiB are not scanned."
+    ]
+  },
+  "runtime_files": [
+    "calibration/stereo_calib.yaml",
+    "configs/object_anchors/tissue_box_01_front_only.yaml",
+    "configs/orbbec_gemini.yaml",
+    "experiments/object_anchor_mvp_final_comparison.py",
+    "experiments/object_anchor_replacement_feasibility.py",
+    "experiments/repeatability_run.py",
+    "models/object_anchor/tissue_box_01_front_only_orbbec_full99/best.pt",
+    "out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/README.md",
+    "out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/branch_frame_assignments.csv",
+    "out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/branch_registration_samples.csv",
+    "out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/branch_registration_summary.json",
+    "out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/branch_validation_comparison.csv",
+    "out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/branch_validation_summary.json",
+    "out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/cross_branch_diagnostics.json",
+    "out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/mvp_final_decision.json",
+    "out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/source_data_inventory.json",
+    "out/object_anchor_full99/mvp_final_comparison/20260726_163325/README.md",
+    "out/object_anchor_full99/mvp_final_comparison/20260726_163325/config_snapshot.yaml",
+    "out/object_anchor_full99/mvp_final_comparison/20260726_163325/mvp_final_decision.json",
+    "out/object_anchor_full99/mvp_final_comparison/20260726_163325/reference_cluster_frames.csv",
+    "out/object_anchor_full99/mvp_final_comparison/20260726_172325/README.md",
+    "out/object_anchor_full99/mvp_final_comparison/20260726_172325/branch_assignment_summary.json",
+    "out/object_anchor_full99/mvp_final_comparison/20260726_172325/config_snapshot.yaml",
+    "out/object_anchor_full99/mvp_final_comparison/20260726_172325/mvp_final_decision.json",
+    "out/object_anchor_full99/mvp_final_comparison/20260726_172325/preflight_summary.json",
+    "out/object_anchor_full99/mvp_final_comparison/20260726_172325/reference_cluster_frames.csv",
+    "out/object_anchor_full99/mvp_final_comparison/20260726_172325/registration/branch_1_tissue_box_relative_pose.yaml",
+    "out/object_anchor_full99/mvp_final_comparison/20260726_172325/registration/branch_prototypes.json",
+    "out/object_anchor_full99/mvp_final_comparison/20260726_172325/registration_samples.csv",
+    "out/object_anchor_full99/mvp_final_comparison/20260726_172325/registration_summary.json",
+    "requirements.txt",
+    "run.ps1",
+    "scripts/analyze_mvp_branch_aware_comparison.py",
+    "scripts/create_placeholder_calibration.py",
+    "scripts/diagnose_mvp_branch_mapping.py",
+    "scripts/diagnose_mvp_translation_filters.py",
+    "scripts/sanitize_yolo_pose_dataset.py",
+    "scripts/smoke_test.py",
+    "scripts/sync-session-path.ps1",
+    "scripts/synthetic_object_anchor_test.py",
+    "scripts/verify_environment.py",
+    "setup.ps1",
+    "src/apriltag_rgbd_validate.py",
+    "src/apriltag_scale.py",
+    "src/apriltag_world.py",
+    "src/calib_pipeline.py",
+    "src/calibration_repository.py",
+    "src/capture.py",
+    "src/depth_dense.py",
+    "src/depth_sparse.py",
+    "src/detect.py",
+    "src/object_anchor_capture.py",
+    "src/object_anchor_config.py",
+    "src/object_anchor_detector.py",
+    "src/object_anchor_geometry.py",
+    "src/object_anchor_pose.py",
+    "src/object_anchor_preview.py",
+    "src/object_anchor_registration.py",
+    "src/object_anchor_runtime.py",
+    "src/object_anchor_visualizer.py",
+    "src/object_anchor_world.py",
+    "src/orbbec_rgbd_capture.py",
+    "src/rgbd_geometry.py",
+    "src/split_rectify.py",
+    "src/stereo_types.py",
+    "src/triangulate.py",
+    "src/yolo_pose_sanitize.py",
+    "tests/test_front_only_sanitizer_cli.py",
+    "tests/test_mvp_branch_aware_comparison.py",
+    "tests/test_mvp_branch_mapping.py",
+    "tests/test_mvp_translation_filters.py",
+    "tests/test_object_anchor_capture.py",
+    "tests/test_object_anchor_mvp_final_comparison.py",
+    "tests/test_object_anchor_pose.py",
+    "tests/test_object_anchor_preview.py",
+    "tests/test_object_anchor_replacement_feasibility.py",
+    "tests/test_object_anchor_runtime.py",
+    "tests/test_object_anchor_world.py",
+    "tests/test_repeatability_preview_overlay.py",
+    "tests/test_yolo_pose_sanitize.py",
+    "yolo11s.pt"
+  ],
+  "direct_live_runtime_files": [
+    "configs/object_anchors/tissue_box_01_front_only.yaml",
+    "configs/orbbec_gemini.yaml",
+    "experiments/repeatability_run.py",
+    "models/object_anchor/tissue_box_01_front_only_orbbec_full99/best.pt",
+    "run.ps1",
+    "scripts/sync-session-path.ps1",
+    "src/apriltag_rgbd_validate.py",
+    "src/apriltag_scale.py",
+    "src/apriltag_world.py",
+    "src/calibration_repository.py",
+    "src/capture.py",
+    "src/depth_dense.py",
+    "src/depth_sparse.py",
+    "src/detect.py",
+    "src/object_anchor_capture.py",
+    "src/object_anchor_config.py",
+    "src/object_anchor_detector.py",
+    "src/object_anchor_geometry.py",
+    "src/object_anchor_pose.py",
+    "src/object_anchor_preview.py",
+    "src/object_anchor_registration.py",
+    "src/object_anchor_runtime.py",
+    "src/object_anchor_visualizer.py",
+    "src/object_anchor_world.py",
+    "src/orbbec_rgbd_capture.py",
+    "src/rgbd_geometry.py",
+    "src/stereo_types.py",
+    "src/triangulate.py",
+    "yolo11s.pt"
+  ],
+  "setup_and_regression_support_files": [
+    "calibration/stereo_calib.yaml",
+    "experiments/object_anchor_mvp_final_comparison.py",
+    "experiments/object_anchor_replacement_feasibility.py",
+    "out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/README.md",
+    "out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/branch_frame_assignments.csv",
+    "out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/branch_registration_samples.csv",
+    "out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/branch_registration_summary.json",
+    "out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/branch_validation_comparison.csv",
+    "out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/branch_validation_summary.json",
+    "out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/cross_branch_diagnostics.json",
+    "out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/mvp_final_decision.json",
+    "out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/source_data_inventory.json",
+    "out/object_anchor_full99/mvp_final_comparison/20260726_163325/README.md",
+    "out/object_anchor_full99/mvp_final_comparison/20260726_163325/config_snapshot.yaml",
+    "out/object_anchor_full99/mvp_final_comparison/20260726_163325/mvp_final_decision.json",
+    "out/object_anchor_full99/mvp_final_comparison/20260726_163325/reference_cluster_frames.csv",
+    "out/object_anchor_full99/mvp_final_comparison/20260726_172325/README.md",
+    "out/object_anchor_full99/mvp_final_comparison/20260726_172325/branch_assignment_summary.json",
+    "out/object_anchor_full99/mvp_final_comparison/20260726_172325/config_snapshot.yaml",
+    "out/object_anchor_full99/mvp_final_comparison/20260726_172325/mvp_final_decision.json",
+    "out/object_anchor_full99/mvp_final_comparison/20260726_172325/preflight_summary.json",
+    "out/object_anchor_full99/mvp_final_comparison/20260726_172325/reference_cluster_frames.csv",
+    "out/object_anchor_full99/mvp_final_comparison/20260726_172325/registration/branch_1_tissue_box_relative_pose.yaml",
+    "out/object_anchor_full99/mvp_final_comparison/20260726_172325/registration/branch_prototypes.json",
+    "out/object_anchor_full99/mvp_final_comparison/20260726_172325/registration_samples.csv",
+    "out/object_anchor_full99/mvp_final_comparison/20260726_172325/registration_summary.json",
+    "requirements.txt",
+    "scripts/analyze_mvp_branch_aware_comparison.py",
+    "scripts/create_placeholder_calibration.py",
+    "scripts/diagnose_mvp_branch_mapping.py",
+    "scripts/diagnose_mvp_translation_filters.py",
+    "scripts/sanitize_yolo_pose_dataset.py",
+    "scripts/smoke_test.py",
+    "scripts/synthetic_object_anchor_test.py",
+    "scripts/verify_environment.py",
+    "setup.ps1",
+    "src/calib_pipeline.py",
+    "src/split_rectify.py",
+    "src/yolo_pose_sanitize.py",
+    "tests/test_front_only_sanitizer_cli.py",
+    "tests/test_mvp_branch_aware_comparison.py",
+    "tests/test_mvp_branch_mapping.py",
+    "tests/test_mvp_translation_filters.py",
+    "tests/test_object_anchor_capture.py",
+    "tests/test_object_anchor_mvp_final_comparison.py",
+    "tests/test_object_anchor_pose.py",
+    "tests/test_object_anchor_preview.py",
+    "tests/test_object_anchor_replacement_feasibility.py",
+    "tests/test_object_anchor_runtime.py",
+    "tests/test_object_anchor_world.py",
+    "tests/test_repeatability_preview_overlay.py",
+    "tests/test_yolo_pose_sanitize.py"
+  ],
+  "references": {
+    ".venv/Lib/site-packages/ultralytics/models/yolo/detect/predict.py": [
+      "scripts/diagnose_planar_pnp_ambiguity.py"
+    ],
+    ".venv/Lib/site-packages/ultralytics/models/yolo/pose/predict.py": [
+      "scripts/diagnose_planar_pnp_ambiguity.py"
+    ],
+    ".venv/Scripts/python.exe": [
+      "README.md",
+      "experiments/repeatability_run.py",
+      "run.ps1",
+      "run_demo.ps1",
+      "setup.ps1",
+      "src/orbbec_rgbd_capture.py"
+    ],
+    "README.md": [
+      "experiments/object_anchor_mvp_final_comparison.py",
+      "experiments/object_anchor_replacement_feasibility.py",
+      "scripts/analyze_apriltag_branch_diagnostics.py",
+      "scripts/analyze_mvp_branch_aware_comparison.py",
+      "scripts/diagnose_apriltag_ippe_branches.py",
+      "scripts/diagnose_mvp_branch_mapping.py",
+      "scripts/diagnose_mvp_translation_filters.py",
+      "src/object_anchor_preview.py"
+    ],
+    "calibration/stereo_calib.yaml": [
+      ".gitignore",
+      "configs/default.yaml",
+      "configs/demo.yaml",
+      "configs/experiments/orbbec_gemini_object_anchor_full99.yaml",
+      "configs/experiments/orbbec_gemini_object_anchor_mvp_final.yaml",
+      "configs/experiments/orbbec_gemini_object_anchor_pilot.yaml",
+      "configs/image_folder.yaml",
+      "configs/orbbec_gemini.yaml",
+      "docs/EXPERIMENT_REPORT_TEMPLATE.md",
+      "scripts/calibrate_from_images.py",
+      "scripts/create_placeholder_calibration.py",
+      "scripts/smoke_test.py",
+      "setup.ps1"
+    ],
+    "configs/cvat/tissue_box_01_front_only_skeleton.yaml": [
+      "docs/OBJECT_ANCHOR_PILOT.md"
+    ],
+    "configs/datasets/tissue_box_front_only_pose.yaml": [
+      "docs/OBJECT_ANCHOR_PILOT.md",
+      "scripts/prepare_object_anchor_orbbec_pilot.py",
+      "scripts/train_object_anchor_pose.py"
+    ],
+    "configs/default.yaml": [
+      "README.md",
+      "docs/EXPERIMENT_REPORT_TEMPLATE.md",
+      "experiments/repeatability_run.py",
+      "run.ps1"
+    ],
+    "configs/demo.yaml": [
+      "README.md",
+      "run.ps1",
+      "run_demo.ps1"
+    ],
+    "configs/experiments/orbbec_gemini_object_anchor_full99.yaml": [
+      "experiments/object_anchor_replacement_feasibility.py",
+      "scripts/analyze_apriltag_branch_diagnostics.py",
+      "scripts/summarize_object_anchor_full99.py"
+    ],
+    "configs/experiments/orbbec_gemini_object_anchor_mvp_final.yaml": [
+      "experiments/object_anchor_mvp_final_comparison.py",
+      "tests/test_object_anchor_mvp_final_comparison.py"
+    ],
+    "configs/experiments/orbbec_gemini_object_anchor_pilot.yaml": [
+      "scripts/verify_object_anchor_full99_protection.py"
+    ],
+    "configs/image_folder.yaml": [
+      "README.md",
+      "run.ps1",
+      "samples/stereo_pairs/README.md"
+    ],
+    "configs/object_anchors/tissue_box_01.yaml": [
+      "README.md",
+      "docs/OBJECT_ANCHOR_PILOT.md",
+      "scripts/sanitize_yolo_pose_dataset.py",
+      "src/object_anchor_runtime.py",
+      "tests/test_object_anchor_pose.py",
+      "tests/test_object_anchor_runtime.py",
+      "tests/test_yolo_pose_sanitize.py"
+    ],
+    "configs/object_anchors/tissue_box_01_front_only.yaml": [
+      "README.md",
+      "configs/cvat/tissue_box_01_front_only_skeleton.yaml",
+      "configs/experiments/orbbec_gemini_object_anchor_full99.yaml",
+      "configs/experiments/orbbec_gemini_object_anchor_mvp_final.yaml",
+      "configs/experiments/orbbec_gemini_object_anchor_pilot.yaml",
+      "configs/orbbec_gemini.yaml",
+      "docs/OBJECT_ANCHOR_PILOT.md",
+      "scripts/diagnose_planar_pnp_ambiguity.py",
+      "scripts/evaluate_object_anchor_pilot.py",
+      "scripts/synthetic_object_anchor_test.py",
+      "tests/test_front_only_sanitizer_cli.py",
+      "tests/test_object_anchor_pose.py",
+      "tests/test_object_anchor_preview.py",
+      "tests/test_object_anchor_runtime.py"
+    ],
+    "configs/orbbec_gemini.yaml": [
+      "README.md",
+      "docs/OBJECT_ANCHOR_PILOT.md",
+      "run.ps1",
+      "scripts/orbbec_smoke_test.py",
+      "scripts/verify_object_anchor_full99_protection.py",
+      "tests/test_mvp_translation_filters.py",
+      "tests/test_object_anchor_preview.py",
+      "tests/test_object_anchor_replacement_feasibility.py"
+    ],
+    "data/datasets/tissue_box_front_orbbec_pilot/preparation_summary.json": [
+      "scripts/prepare_object_anchor_orbbec_pilot.py"
+    ],
+    "data/datasets/tissue_box_front_orbbec_pilot/selected_negative_files.txt": [
+      "scripts/prepare_object_anchor_orbbec_pilot.py"
+    ],
+    "data/datasets/tissue_box_front_orbbec_valid99_source/merge_manifest.csv": [
+      "scripts/prepare_object_anchor_valid99_source.py"
+    ],
+    "data/object_anchor_capture/capture_manifest.csv": [
+      "README.md",
+      "docs/OBJECT_ANCHOR_CAPTURE.md",
+      "src/object_anchor_capture.py"
+    ],
+    "data/tissue_box_front_only_pose/split_manifest.json": [
+      "scripts/prepare_object_anchor_full99_dataset.py"
+    ],
+    "docs/OBJECT_ANCHOR_PILOT.md": [
+      "README.md"
+    ],
+    "experiments/kpi_from_csv.py": [
+      "README.md"
+    ],
+    "experiments/object_anchor_mvp_final_comparison.py": [
+      "scripts/diagnose_mvp_branch_mapping.py",
+      "scripts/diagnose_mvp_translation_filters.py",
+      "tests/test_mvp_branch_mapping.py",
+      "tests/test_mvp_translation_filters.py",
+      "tests/test_object_anchor_mvp_final_comparison.py"
+    ],
+    "experiments/object_anchor_replacement_feasibility.py": [
+      "experiments/object_anchor_mvp_final_comparison.py",
+      "scripts/analyze_apriltag_branch_diagnostics.py",
+      "scripts/diagnose_planar_pnp_ambiguity.py",
+      "tests/test_object_anchor_replacement_feasibility.py"
+    ],
+    "experiments/repeatability_run.py": [
+      "README.md",
+      "docs/EXPERIMENT_REPORT_TEMPLATE.md",
+      "experiments/object_anchor_mvp_final_comparison.py",
+      "experiments/object_anchor_replacement_feasibility.py",
+      "run.ps1",
+      "run_demo.ps1",
+      "tests/test_object_anchor_preview.py",
+      "tests/test_repeatability_preview_overlay.py"
+    ],
+    "models/object_anchor/tissue_box_01_front_only/best.pt": [
+      "docs/OBJECT_ANCHOR_PILOT.md"
+    ],
+    "models/object_anchor/tissue_box_01_front_only_orbbec_full99/best.pt": [
+      "configs/experiments/orbbec_gemini_object_anchor_full99.yaml",
+      "configs/experiments/orbbec_gemini_object_anchor_mvp_final.yaml",
+      "configs/orbbec_gemini.yaml",
+      "experiments/object_anchor_replacement_feasibility.py",
+      "scripts/summarize_object_anchor_full99.py",
+      "tests/test_object_anchor_preview.py",
+      "tests/test_object_anchor_replacement_feasibility.py"
+    ],
+    "models/object_anchor/tissue_box_01_front_only_orbbec_pilot/best.pt": [
+      "configs/experiments/orbbec_gemini_object_anchor_pilot.yaml",
+      "scripts/summarize_object_anchor_full99.py"
+    ],
+    "out/object_anchor/synthetic_front_only_pose.png": [
+      "README.md"
+    ],
+    "out/object_anchor_full99/dataset_validation/protection_verification.json": [
+      "scripts/summarize_object_anchor_full99.py",
+      "scripts/verify_object_anchor_full99_protection.py"
+    ],
+    "out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/branch_frame_assignments.csv": [
+      "scripts/analyze_mvp_branch_aware_comparison.py",
+      "scripts/diagnose_mvp_translation_filters.py"
+    ],
+    "out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/branch_registration_samples.csv": [
+      "scripts/analyze_mvp_branch_aware_comparison.py"
+    ],
+    "out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/branch_registration_summary.json": [
+      "scripts/analyze_mvp_branch_aware_comparison.py",
+      "scripts/diagnose_mvp_translation_filters.py"
+    ],
+    "out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/branch_validation_comparison.csv": [
+      "scripts/analyze_mvp_branch_aware_comparison.py"
+    ],
+    "out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/branch_validation_summary.json": [
+      "scripts/analyze_mvp_branch_aware_comparison.py"
+    ],
+    "out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/cross_branch_diagnostics.json": [
+      "scripts/analyze_mvp_branch_aware_comparison.py"
+    ],
+    "out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/source_data_inventory.json": [
+      "scripts/analyze_mvp_branch_aware_comparison.py"
+    ],
+    "out/object_anchor_full99/mvp_branch_mapping_diagnostics/20260726_173332/preflight_branch_remapping.csv": [
+      "scripts/diagnose_mvp_branch_mapping.py"
+    ],
+    "out/object_anchor_full99/mvp_branch_mapping_diagnostics/20260726_173332/preflight_original_vs_remapped_summary.json": [
+      "scripts/diagnose_mvp_branch_mapping.py"
+    ],
+    "out/object_anchor_full99/mvp_branch_mapping_diagnostics/20260726_173332/registration_branch_prototypes.json": [
+      "scripts/diagnose_mvp_branch_mapping.py"
+    ],
+    "out/object_anchor_full99/mvp_branch_mapping_diagnostics/20260726_173332/registration_count_audit.json": [
+      "scripts/diagnose_mvp_branch_mapping.py"
+    ],
+    "out/object_anchor_full99/mvp_final_comparison/20260726_172325/branch_assignment_summary.json": [
+      "experiments/object_anchor_mvp_final_comparison.py"
+    ],
+    "out/object_anchor_full99/mvp_final_comparison/20260726_172325/preflight_summary.json": [
+      "experiments/object_anchor_mvp_final_comparison.py",
+      "scripts/diagnose_mvp_branch_mapping.py"
+    ],
+    "out/object_anchor_full99/mvp_final_comparison/20260726_172325/registration/branch_prototypes.json": [
+      "experiments/object_anchor_mvp_final_comparison.py",
+      "scripts/diagnose_mvp_branch_mapping.py"
+    ],
+    "out/object_anchor_full99/mvp_final_comparison/20260726_172325/registration_samples.csv": [
+      "experiments/object_anchor_mvp_final_comparison.py",
+      "scripts/diagnose_mvp_branch_mapping.py"
+    ],
+    "out/object_anchor_full99/mvp_final_comparison/20260726_172325/registration_summary.json": [
+      "experiments/object_anchor_mvp_final_comparison.py",
+      "scripts/diagnose_mvp_branch_mapping.py"
+    ],
+    "out/object_anchor_full99/mvp_translation_diagnostics/20260726_164854/cup_logging_readiness.json": [
+      "scripts/diagnose_mvp_translation_filters.py"
+    ],
+    "out/object_anchor_full99/mvp_translation_diagnostics/20260726_164854/selected_filter.json": [
+      "scripts/diagnose_mvp_translation_filters.py"
+    ],
+    "out/object_anchor_full99/mvp_translation_diagnostics/20260726_164854/temporal_filter_frame_comparison.csv": [
+      "scripts/diagnose_mvp_translation_filters.py"
+    ],
+    "out/object_anchor_full99/mvp_translation_diagnostics/20260726_164854/temporal_filter_summary.json": [
+      "scripts/diagnose_mvp_translation_filters.py"
+    ],
+    "out/object_anchor_full99/mvp_translation_diagnostics/20260726_164854/translation_axis_analysis.csv": [
+      "scripts/diagnose_mvp_translation_filters.py"
+    ],
+    "out/object_anchor_full99/mvp_translation_diagnostics/20260726_164854/translation_correlation_summary.json": [
+      "scripts/diagnose_mvp_translation_filters.py"
+    ],
+    "out/object_anchor_full99/offline_comparison/full99/summary.json": [
+      "scripts/diagnose_planar_pnp_ambiguity.py"
+    ],
+    "out/object_anchor_full99/repeatability_orbbec_full99.csv": [
+      "configs/experiments/orbbec_gemini_object_anchor_full99.yaml"
+    ],
+    "out/object_anchor_full99/replacement_feasibility/20260726_132601/experiment_paths.json": [
+      "experiments/object_anchor_replacement_feasibility.py"
+    ],
+    "out/object_anchor_full99/replacement_feasibility/20260726_132601/pnp_cluster_diagnostics/cluster_summary.json": [
+      "scripts/diagnose_planar_pnp_ambiguity.py"
+    ],
+    "out/object_anchor_full99/replacement_feasibility/20260726_132601/pnp_cluster_diagnostics/diagnostic_README.md": [
+      "scripts/diagnose_planar_pnp_ambiguity.py"
+    ],
+    "out/object_anchor_full99/replacement_feasibility/20260726_132601/pnp_cluster_diagnostics/frame_cluster_assignment.csv": [
+      "scripts/diagnose_planar_pnp_ambiguity.py"
+    ],
+    "out/object_anchor_full99/replacement_feasibility/20260726_132601/pnp_cluster_diagnostics/keypoint_cluster_comparison.csv": [
+      "scripts/diagnose_planar_pnp_ambiguity.py"
+    ],
+    "out/object_anchor_full99/replacement_feasibility/20260726_132601/pnp_cluster_diagnostics/solver_branch_comparison.csv": [
+      "scripts/diagnose_planar_pnp_ambiguity.py"
+    ],
+    "out/object_anchor_full99/replacement_feasibility/20260726_132601/registration/registration_config.yaml": [
+      "experiments/object_anchor_replacement_feasibility.py"
+    ],
+    "out/object_anchor_full99/replacement_feasibility/apriltag_branch_diagnostics/20260726_155403/branch_policy_comparison.csv": [
+      "scripts/analyze_apriltag_branch_diagnostics.py",
+      "scripts/diagnose_apriltag_ippe_branches.py"
+    ],
+    "out/object_anchor_full99/replacement_feasibility/apriltag_branch_diagnostics/20260726_155403/candidate_pose_per_frame.csv": [
+      "scripts/analyze_apriltag_branch_diagnostics.py",
+      "scripts/diagnose_apriltag_ippe_branches.py"
+    ],
+    "out/object_anchor_full99/replacement_feasibility/apriltag_branch_diagnostics/20260726_155403/jump_frame_analysis.json": [
+      "scripts/analyze_apriltag_branch_diagnostics.py",
+      "scripts/diagnose_apriltag_ippe_branches.py"
+    ],
+    "out/object_anchor_full99/replacement_feasibility/apriltag_intrinsic_diagnostics/20260726_151502/apriltag_frame_summary.csv": [
+      "experiments/object_anchor_replacement_feasibility.py",
+      "scripts/diagnose_apriltag_ippe_branches.py"
+    ],
+    "out/object_anchor_full99/replacement_feasibility/apriltag_intrinsic_diagnostics/20260726_151502/apriltag_intrinsic_summary.json": [
+      "experiments/object_anchor_replacement_feasibility.py"
+    ],
+    "out/object_anchor_full99/replacement_feasibility/apriltag_intrinsic_diagnostics/20260726_151502/apriltag_observation_comparison.csv": [
+      "experiments/object_anchor_replacement_feasibility.py",
+      "scripts/analyze_apriltag_branch_diagnostics.py",
+      "scripts/diagnose_apriltag_ippe_branches.py"
+    ],
+    "out/object_anchor_full99/replacement_feasibility/apriltag_intrinsic_diagnostics/20260726_151502/diagnostic_config_snapshot.yaml": [
+      "experiments/object_anchor_replacement_feasibility.py",
+      "scripts/diagnose_apriltag_ippe_branches.py"
+    ],
+    "out/object_anchor_full99/replacement_feasibility/apriltag_intrinsic_diagnostics/20260726_151502/frame_diagnostics.csv": [
+      "experiments/object_anchor_replacement_feasibility.py"
+    ],
+    "out/object_anchor_full99/replacement_feasibility/apriltag_intrinsic_diagnostics/20260726_151502/jump_analysis.csv": [
+      "experiments/object_anchor_replacement_feasibility.py"
+    ],
+    "out/object_anchor_full99/replacement_feasibility/apriltag_intrinsic_diagnostics/20260726_151502/representative_normal_raw.jpg": [
+      "experiments/object_anchor_replacement_feasibility.py"
+    ],
+    "out/object_anchor_pilot/repeatability_orbbec_pilot.csv": [
+      "configs/experiments/orbbec_gemini_object_anchor_pilot.yaml"
+    ],
+    "out/object_anchor_valid99/suspected_labels.txt": [
+      "scripts/prepare_object_anchor_valid99_source.py"
+    ],
+    "out/object_anchor_world/20260722_144211/object_anchor_world_frames.csv": [
+      "docs/OBJECT_ANCHOR_LIVE_TEST_20260722.md"
+    ],
+    "out/object_anchor_world/20260722_144211/object_anchor_world_summary_final.json": [
+      "docs/OBJECT_ANCHOR_LIVE_TEST_20260722.md"
+    ],
+    "out/repeatability.csv": [
+      "configs/default.yaml",
+      "experiments/repeatability_run.py"
+    ],
+    "out/repeatability_demo.csv": [
+      "README.md",
+      "configs/demo.yaml"
+    ],
+    "out/repeatability_from_images.csv": [
+      "configs/image_folder.yaml"
+    ],
+    "out/repeatability_orbbec.csv": [
+      "configs/orbbec_gemini.yaml",
+      "docs/OBJECT_ANCHOR_LIVE_TEST_20260722.md",
+      "experiments/repeatability_run.py"
+    ],
+    "requirements.txt": [
+      "README.md"
+    ],
+    "run.ps1": [
+      "README.md",
+      "docs/OBJECT_ANCHOR_PILOT.md",
+      "run.ps1",
+      "scripts/diagnose_mvp_branch_mapping.py",
+      "src/orbbec_rgbd_capture.py",
+      "tests/test_mvp_branch_mapping.py",
+      "tests/test_mvp_translation_filters.py",
+      "tests/test_object_anchor_preview.py"
+    ],
+    "run_demo.ps1": [
+      "README.md",
+      "setup.ps1"
+    ],
+    "runs/object_anchor_pose/tissue_box_01_front_only_pilot/weights/best.pt": [
+      "docs/OBJECT_ANCHOR_PILOT.md"
+    ],
+    "samples/stereo_pairs/README.md": [
+      "README.md"
+    ],
+    "scripts/analyze_mvp_branch_aware_comparison.py": [
+      "tests/test_mvp_branch_aware_comparison.py"
+    ],
+    "scripts/create_placeholder_calibration.py": [
+      "README.md",
+      "scripts/smoke_test.py",
+      "setup.ps1"
+    ],
+    "scripts/diagnose_mvp_branch_mapping.py": [
+      "tests/test_mvp_branch_mapping.py"
+    ],
+    "scripts/diagnose_mvp_translation_filters.py": [
+      "tests/test_mvp_translation_filters.py"
+    ],
+    "scripts/sanitize_yolo_pose_dataset.py": [
+      "tests/test_front_only_sanitizer_cli.py"
+    ],
+    "scripts/smoke_test.py": [
+      "README.md",
+      "setup.ps1"
+    ],
+    "scripts/sync-session-path.ps1": [
+      "run.ps1",
+      "run_demo.ps1",
+      "setup.ps1"
+    ],
+    "scripts/synthetic_object_anchor_test.py": [
+      "README.md",
+      "setup.ps1"
+    ],
+    "scripts/train_object_anchor_pose.py": [
+      "docs/OBJECT_ANCHOR_PILOT.md"
+    ],
+    "scripts/verify_environment.py": [
+      "README.md",
+      "setup.ps1"
+    ],
+    "setup.ps1": [
+      "README.md",
+      "configs/demo.yaml",
+      "run.ps1",
+      "setup.ps1"
+    ],
+    "src/apriltag_rgbd_validate.py": [
+      "experiments/repeatability_run.py"
+    ],
+    "src/apriltag_scale.py": [
+      "experiments/object_anchor_mvp_final_comparison.py",
+      "experiments/object_anchor_replacement_feasibility.py",
+      "experiments/repeatability_run.py",
+      "src/apriltag_rgbd_validate.py",
+      "src/apriltag_world.py"
+    ],
+    "src/apriltag_world.py": [
+      "experiments/object_anchor_mvp_final_comparison.py",
+      "experiments/object_anchor_replacement_feasibility.py",
+      "experiments/repeatability_run.py",
+      "scripts/analyze_apriltag_branch_diagnostics.py",
+      "scripts/diagnose_apriltag_ippe_branches.py",
+      "scripts/diagnose_mvp_branch_mapping.py",
+      "scripts/diagnose_planar_pnp_ambiguity.py",
+      "src/object_anchor_preview.py",
+      "src/object_anchor_world.py",
+      "tests/test_mvp_translation_filters.py",
+      "tests/test_object_anchor_preview.py",
+      "tests/test_object_anchor_world.py"
+    ],
+    "src/calib_pipeline.py": [
+      "scripts/calibrate_from_images.py",
+      "scripts/create_placeholder_calibration.py"
+    ],
+    "src/calibration_repository.py": [
+      "experiments/repeatability_run.py",
+      "scripts/create_placeholder_calibration.py",
+      "scripts/smoke_test.py",
+      "src/calib_pipeline.py",
+      "src/split_rectify.py"
+    ],
+    "src/capture.py": [
+      "experiments/repeatability_run.py"
+    ],
+    "src/depth_dense.py": [
+      "experiments/repeatability_run.py",
+      "scripts/smoke_test.py"
+    ],
+    "src/depth_sparse.py": [
+      "experiments/repeatability_run.py",
+      "scripts/smoke_test.py"
+    ],
+    "src/detect.py": [
+      "experiments/object_anchor_mvp_final_comparison.py",
+      "experiments/object_anchor_replacement_feasibility.py",
+      "experiments/repeatability_run.py",
+      "scripts/smoke_test.py",
+      "tests/test_object_anchor_replacement_feasibility.py"
+    ],
+    "src/object_anchor_capture.py": [
+      "experiments/repeatability_run.py",
+      "tests/test_object_anchor_capture.py"
+    ],
+    "src/object_anchor_config.py": [
+      "scripts/diagnose_planar_pnp_ambiguity.py",
+      "scripts/evaluate_object_anchor_pilot.py",
+      "scripts/sanitize_yolo_pose_dataset.py",
+      "scripts/synthetic_object_anchor_test.py",
+      "src/object_anchor_pose.py",
+      "src/object_anchor_runtime.py",
+      "src/object_anchor_visualizer.py",
+      "tests/test_object_anchor_pose.py",
+      "tests/test_object_anchor_runtime.py",
+      "tests/test_yolo_pose_sanitize.py"
+    ],
+    "src/object_anchor_detector.py": [
+      "scripts/diagnose_planar_pnp_ambiguity.py",
+      "src/object_anchor_runtime.py",
+      "tests/test_object_anchor_replacement_feasibility.py",
+      "tests/test_object_anchor_runtime.py",
+      "tests/test_object_anchor_world.py"
+    ],
+    "src/object_anchor_geometry.py": [
+      "scripts/evaluate_object_anchor_pilot.py",
+      "src/object_anchor_runtime.py",
+      "tests/test_object_anchor_world.py"
+    ],
+    "src/object_anchor_pose.py": [
+      "scripts/diagnose_mvp_branch_mapping.py",
+      "scripts/diagnose_planar_pnp_ambiguity.py",
+      "scripts/evaluate_object_anchor_pilot.py",
+      "scripts/synthetic_object_anchor_test.py",
+      "src/object_anchor_runtime.py",
+      "src/object_anchor_visualizer.py",
+      "src/object_anchor_world.py",
+      "tests/test_mvp_translation_filters.py",
+      "tests/test_object_anchor_pose.py",
+      "tests/test_object_anchor_preview.py",
+      "tests/test_object_anchor_runtime.py",
+      "tests/test_object_anchor_world.py"
+    ],
+    "src/object_anchor_preview.py": [
+      "experiments/repeatability_run.py",
+      "tests/test_object_anchor_preview.py"
+    ],
+    "src/object_anchor_registration.py": [
+      "README.md",
+      "experiments/object_anchor_mvp_final_comparison.py",
+      "experiments/object_anchor_replacement_feasibility.py",
+      "src/object_anchor_world.py",
+      "tests/test_object_anchor_runtime.py"
+    ],
+    "src/object_anchor_runtime.py": [
+      "experiments/object_anchor_mvp_final_comparison.py",
+      "experiments/object_anchor_replacement_feasibility.py",
+      "experiments/repeatability_run.py",
+      "scripts/diagnose_mvp_branch_mapping.py",
+      "src/object_anchor_preview.py",
+      "src/object_anchor_world.py",
+      "tests/test_mvp_translation_filters.py",
+      "tests/test_object_anchor_preview.py",
+      "tests/test_object_anchor_runtime.py",
+      "tests/test_object_anchor_world.py"
+    ],
+    "src/object_anchor_visualizer.py": [
+      "scripts/synthetic_object_anchor_test.py",
+      "src/object_anchor_runtime.py"
+    ],
+    "src/object_anchor_world.py": [
+      "experiments/object_anchor_mvp_final_comparison.py",
+      "experiments/object_anchor_replacement_feasibility.py",
+      "experiments/repeatability_run.py",
+      "scripts/analyze_apriltag_branch_diagnostics.py",
+      "scripts/analyze_mvp_branch_aware_comparison.py",
+      "scripts/diagnose_apriltag_ippe_branches.py",
+      "scripts/diagnose_mvp_translation_filters.py",
+      "scripts/diagnose_planar_pnp_ambiguity.py",
+      "src/object_anchor_preview.py",
+      "tests/test_object_anchor_replacement_feasibility.py",
+      "tests/test_object_anchor_world.py"
+    ],
+    "src/orbbec_rgbd_capture.py": [
+      "experiments/object_anchor_mvp_final_comparison.py",
+      "experiments/object_anchor_replacement_feasibility.py",
+      "experiments/repeatability_run.py",
+      "scripts/diagnose_planar_pnp_ambiguity.py",
+      "scripts/orbbec_smoke_test.py"
+    ],
+    "src/rgbd_geometry.py": [
+      "experiments/object_anchor_mvp_final_comparison.py",
+      "experiments/object_anchor_replacement_feasibility.py",
+      "experiments/repeatability_run.py",
+      "src/apriltag_rgbd_validate.py"
+    ],
+    "src/split_rectify.py": [
+      "scripts/smoke_test.py"
+    ],
+    "src/stereo_types.py": [
+      "experiments/repeatability_run.py",
+      "scripts/smoke_test.py",
+      "src/apriltag_scale.py",
+      "src/apriltag_world.py",
+      "src/capture.py",
+      "src/depth_dense.py",
+      "src/depth_sparse.py",
+      "src/detect.py",
+      "src/object_anchor_preview.py",
+      "src/rgbd_geometry.py",
+      "src/split_rectify.py",
+      "tests/test_object_anchor_preview.py"
+    ],
+    "src/triangulate.py": [
+      "src/apriltag_scale.py",
+      "src/depth_dense.py",
+      "src/depth_sparse.py"
+    ],
+    "src/yolo_pose_sanitize.py": [
+      "scripts/sanitize_yolo_pose_dataset.py",
+      "tests/test_yolo_pose_sanitize.py"
+    ],
+    "yolo11n-pose.pt": [
+      "scripts/train_object_anchor_pose.py"
+    ],
+    "yolo11s.pt": [
+      "configs/default.yaml",
+      "configs/demo.yaml",
+      "configs/experiments/orbbec_gemini_object_anchor_full99.yaml",
+      "configs/experiments/orbbec_gemini_object_anchor_mvp_final.yaml",
+      "configs/experiments/orbbec_gemini_object_anchor_pilot.yaml",
+      "configs/image_folder.yaml",
+      "configs/orbbec_gemini.yaml",
+      "experiments/repeatability_run.py",
+      "src/detect.py",
+      "tests/test_object_anchor_replacement_feasibility.py"
+    ]
+  },
+  "runtime_edges": [
+    {
+      "source": "configs/orbbec_gemini.yaml",
+      "target": "configs/object_anchors/tissue_box_01_front_only.yaml",
+      "kind": "selected_config_asset"
+    },
+    {
+      "source": "configs/orbbec_gemini.yaml",
+      "target": "models/object_anchor/tissue_box_01_front_only_orbbec_full99/best.pt",
+      "kind": "selected_config_asset"
+    },
+    {
+      "source": "configs/orbbec_gemini.yaml",
+      "target": "yolo11s.pt",
+      "kind": "selected_config_asset"
+    },
+    {
+      "source": "experiments/object_anchor_mvp_final_comparison.py",
+      "target": "experiments/object_anchor_replacement_feasibility.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "experiments/object_anchor_mvp_final_comparison.py",
+      "target": "experiments/repeatability_run.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "experiments/object_anchor_mvp_final_comparison.py",
+      "target": "src/apriltag_scale.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "experiments/object_anchor_mvp_final_comparison.py",
+      "target": "src/apriltag_world.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "experiments/object_anchor_mvp_final_comparison.py",
+      "target": "src/detect.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "experiments/object_anchor_mvp_final_comparison.py",
+      "target": "src/object_anchor_registration.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "experiments/object_anchor_mvp_final_comparison.py",
+      "target": "src/object_anchor_runtime.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "experiments/object_anchor_mvp_final_comparison.py",
+      "target": "src/object_anchor_world.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "experiments/object_anchor_mvp_final_comparison.py",
+      "target": "src/orbbec_rgbd_capture.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "experiments/object_anchor_mvp_final_comparison.py",
+      "target": "src/rgbd_geometry.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "experiments/object_anchor_replacement_feasibility.py",
+      "target": "experiments/repeatability_run.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "experiments/object_anchor_replacement_feasibility.py",
+      "target": "src/apriltag_scale.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "experiments/object_anchor_replacement_feasibility.py",
+      "target": "src/apriltag_world.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "experiments/object_anchor_replacement_feasibility.py",
+      "target": "src/detect.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "experiments/object_anchor_replacement_feasibility.py",
+      "target": "src/object_anchor_registration.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "experiments/object_anchor_replacement_feasibility.py",
+      "target": "src/object_anchor_runtime.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "experiments/object_anchor_replacement_feasibility.py",
+      "target": "src/object_anchor_world.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "experiments/object_anchor_replacement_feasibility.py",
+      "target": "src/orbbec_rgbd_capture.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "experiments/object_anchor_replacement_feasibility.py",
+      "target": "src/rgbd_geometry.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "experiments/repeatability_run.py",
+      "target": "src/apriltag_rgbd_validate.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "experiments/repeatability_run.py",
+      "target": "src/apriltag_rgbd_validate.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "experiments/repeatability_run.py",
+      "target": "src/apriltag_scale.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "experiments/repeatability_run.py",
+      "target": "src/apriltag_scale.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "experiments/repeatability_run.py",
+      "target": "src/apriltag_world.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "experiments/repeatability_run.py",
+      "target": "src/apriltag_world.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "experiments/repeatability_run.py",
+      "target": "src/calibration_repository.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "experiments/repeatability_run.py",
+      "target": "src/calibration_repository.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "experiments/repeatability_run.py",
+      "target": "src/capture.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "experiments/repeatability_run.py",
+      "target": "src/capture.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "experiments/repeatability_run.py",
+      "target": "src/depth_dense.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "experiments/repeatability_run.py",
+      "target": "src/depth_dense.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "experiments/repeatability_run.py",
+      "target": "src/depth_sparse.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "experiments/repeatability_run.py",
+      "target": "src/depth_sparse.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "experiments/repeatability_run.py",
+      "target": "src/detect.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "experiments/repeatability_run.py",
+      "target": "src/detect.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "experiments/repeatability_run.py",
+      "target": "src/object_anchor_capture.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "experiments/repeatability_run.py",
+      "target": "src/object_anchor_capture.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "experiments/repeatability_run.py",
+      "target": "src/object_anchor_preview.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "experiments/repeatability_run.py",
+      "target": "src/object_anchor_preview.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "experiments/repeatability_run.py",
+      "target": "src/object_anchor_runtime.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "experiments/repeatability_run.py",
+      "target": "src/object_anchor_runtime.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "experiments/repeatability_run.py",
+      "target": "src/object_anchor_world.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "experiments/repeatability_run.py",
+      "target": "src/object_anchor_world.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "experiments/repeatability_run.py",
+      "target": "src/orbbec_rgbd_capture.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "experiments/repeatability_run.py",
+      "target": "src/orbbec_rgbd_capture.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "experiments/repeatability_run.py",
+      "target": "src/rgbd_geometry.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "experiments/repeatability_run.py",
+      "target": "src/rgbd_geometry.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "experiments/repeatability_run.py",
+      "target": "src/stereo_types.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "experiments/repeatability_run.py",
+      "target": "src/stereo_types.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "run.ps1",
+      "target": "calibration/stereo_calib.yaml",
+      "kind": "setup_or_explicit_path"
+    },
+    {
+      "source": "run.ps1",
+      "target": "configs/object_anchors/tissue_box_01_front_only.yaml",
+      "kind": "setup_or_explicit_path"
+    },
+    {
+      "source": "run.ps1",
+      "target": "requirements.txt",
+      "kind": "setup_or_explicit_path"
+    },
+    {
+      "source": "run.ps1",
+      "target": "scripts/create_placeholder_calibration.py",
+      "kind": "setup_or_explicit_path"
+    },
+    {
+      "source": "run.ps1",
+      "target": "scripts/smoke_test.py",
+      "kind": "setup_or_explicit_path"
+    },
+    {
+      "source": "run.ps1",
+      "target": "scripts/sync-session-path.ps1",
+      "kind": "direct_powershell_source"
+    },
+    {
+      "source": "run.ps1",
+      "target": "scripts/sync-session-path.ps1",
+      "kind": "setup_or_explicit_path"
+    },
+    {
+      "source": "run.ps1",
+      "target": "scripts/synthetic_object_anchor_test.py",
+      "kind": "setup_or_explicit_path"
+    },
+    {
+      "source": "run.ps1",
+      "target": "scripts/verify_environment.py",
+      "kind": "setup_or_explicit_path"
+    },
+    {
+      "source": "run.ps1",
+      "target": "setup.ps1",
+      "kind": "setup_or_explicit_path"
+    },
+    {
+      "source": "scripts/analyze_mvp_branch_aware_comparison.py",
+      "target": "src/object_anchor_world.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "scripts/create_placeholder_calibration.py",
+      "target": "src/calib_pipeline.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "scripts/create_placeholder_calibration.py",
+      "target": "src/calibration_repository.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "scripts/diagnose_mvp_branch_mapping.py",
+      "target": "experiments/object_anchor_mvp_final_comparison.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "scripts/diagnose_mvp_branch_mapping.py",
+      "target": "src/apriltag_world.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "scripts/diagnose_mvp_branch_mapping.py",
+      "target": "src/object_anchor_pose.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "scripts/diagnose_mvp_branch_mapping.py",
+      "target": "src/object_anchor_runtime.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "scripts/diagnose_mvp_translation_filters.py",
+      "target": "experiments/object_anchor_mvp_final_comparison.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "scripts/diagnose_mvp_translation_filters.py",
+      "target": "src/object_anchor_world.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "scripts/sanitize_yolo_pose_dataset.py",
+      "target": "src/object_anchor_config.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "scripts/sanitize_yolo_pose_dataset.py",
+      "target": "src/yolo_pose_sanitize.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "scripts/smoke_test.py",
+      "target": "scripts/create_placeholder_calibration.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "scripts/smoke_test.py",
+      "target": "src/calibration_repository.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "scripts/smoke_test.py",
+      "target": "src/depth_dense.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "scripts/smoke_test.py",
+      "target": "src/depth_sparse.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "scripts/smoke_test.py",
+      "target": "src/detect.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "scripts/smoke_test.py",
+      "target": "src/split_rectify.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "scripts/smoke_test.py",
+      "target": "src/stereo_types.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "scripts/synthetic_object_anchor_test.py",
+      "target": "src/object_anchor_config.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "scripts/synthetic_object_anchor_test.py",
+      "target": "src/object_anchor_pose.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "scripts/synthetic_object_anchor_test.py",
+      "target": "src/object_anchor_visualizer.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "setup.ps1",
+      "target": "out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/README.md",
+      "kind": "regression_fixture"
+    },
+    {
+      "source": "setup.ps1",
+      "target": "out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/branch_frame_assignments.csv",
+      "kind": "regression_fixture"
+    },
+    {
+      "source": "setup.ps1",
+      "target": "out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/branch_registration_samples.csv",
+      "kind": "regression_fixture"
+    },
+    {
+      "source": "setup.ps1",
+      "target": "out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/branch_registration_summary.json",
+      "kind": "regression_fixture"
+    },
+    {
+      "source": "setup.ps1",
+      "target": "out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/branch_validation_comparison.csv",
+      "kind": "regression_fixture"
+    },
+    {
+      "source": "setup.ps1",
+      "target": "out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/branch_validation_summary.json",
+      "kind": "regression_fixture"
+    },
+    {
+      "source": "setup.ps1",
+      "target": "out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/cross_branch_diagnostics.json",
+      "kind": "regression_fixture"
+    },
+    {
+      "source": "setup.ps1",
+      "target": "out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/mvp_final_decision.json",
+      "kind": "regression_fixture"
+    },
+    {
+      "source": "setup.ps1",
+      "target": "out/object_anchor_full99/mvp_branch_aware_comparison/20260726_164157/source_data_inventory.json",
+      "kind": "regression_fixture"
+    },
+    {
+      "source": "setup.ps1",
+      "target": "out/object_anchor_full99/mvp_final_comparison/20260726_163325/README.md",
+      "kind": "regression_fixture"
+    },
+    {
+      "source": "setup.ps1",
+      "target": "out/object_anchor_full99/mvp_final_comparison/20260726_163325/config_snapshot.yaml",
+      "kind": "regression_fixture"
+    },
+    {
+      "source": "setup.ps1",
+      "target": "out/object_anchor_full99/mvp_final_comparison/20260726_163325/mvp_final_decision.json",
+      "kind": "regression_fixture"
+    },
+    {
+      "source": "setup.ps1",
+      "target": "out/object_anchor_full99/mvp_final_comparison/20260726_163325/reference_cluster_frames.csv",
+      "kind": "regression_fixture"
+    },
+    {
+      "source": "setup.ps1",
+      "target": "out/object_anchor_full99/mvp_final_comparison/20260726_172325/README.md",
+      "kind": "regression_fixture"
+    },
+    {
+      "source": "setup.ps1",
+      "target": "out/object_anchor_full99/mvp_final_comparison/20260726_172325/branch_assignment_summary.json",
+      "kind": "regression_fixture"
+    },
+    {
+      "source": "setup.ps1",
+      "target": "out/object_anchor_full99/mvp_final_comparison/20260726_172325/config_snapshot.yaml",
+      "kind": "regression_fixture"
+    },
+    {
+      "source": "setup.ps1",
+      "target": "out/object_anchor_full99/mvp_final_comparison/20260726_172325/mvp_final_decision.json",
+      "kind": "regression_fixture"
+    },
+    {
+      "source": "setup.ps1",
+      "target": "out/object_anchor_full99/mvp_final_comparison/20260726_172325/preflight_summary.json",
+      "kind": "regression_fixture"
+    },
+    {
+      "source": "setup.ps1",
+      "target": "out/object_anchor_full99/mvp_final_comparison/20260726_172325/reference_cluster_frames.csv",
+      "kind": "regression_fixture"
+    },
+    {
+      "source": "setup.ps1",
+      "target": "out/object_anchor_full99/mvp_final_comparison/20260726_172325/registration/branch_1_tissue_box_relative_pose.yaml",
+      "kind": "regression_fixture"
+    },
+    {
+      "source": "setup.ps1",
+      "target": "out/object_anchor_full99/mvp_final_comparison/20260726_172325/registration/branch_prototypes.json",
+      "kind": "regression_fixture"
+    },
+    {
+      "source": "setup.ps1",
+      "target": "out/object_anchor_full99/mvp_final_comparison/20260726_172325/registration_samples.csv",
+      "kind": "regression_fixture"
+    },
+    {
+      "source": "setup.ps1",
+      "target": "out/object_anchor_full99/mvp_final_comparison/20260726_172325/registration_summary.json",
+      "kind": "regression_fixture"
+    },
+    {
+      "source": "setup.ps1",
+      "target": "tests/test_front_only_sanitizer_cli.py",
+      "kind": "full_test_suite"
+    },
+    {
+      "source": "setup.ps1",
+      "target": "tests/test_mvp_branch_aware_comparison.py",
+      "kind": "full_test_suite"
+    },
+    {
+      "source": "setup.ps1",
+      "target": "tests/test_mvp_branch_mapping.py",
+      "kind": "full_test_suite"
+    },
+    {
+      "source": "setup.ps1",
+      "target": "tests/test_mvp_translation_filters.py",
+      "kind": "full_test_suite"
+    },
+    {
+      "source": "setup.ps1",
+      "target": "tests/test_object_anchor_capture.py",
+      "kind": "full_test_suite"
+    },
+    {
+      "source": "setup.ps1",
+      "target": "tests/test_object_anchor_mvp_final_comparison.py",
+      "kind": "full_test_suite"
+    },
+    {
+      "source": "setup.ps1",
+      "target": "tests/test_object_anchor_pose.py",
+      "kind": "full_test_suite"
+    },
+    {
+      "source": "setup.ps1",
+      "target": "tests/test_object_anchor_preview.py",
+      "kind": "full_test_suite"
+    },
+    {
+      "source": "setup.ps1",
+      "target": "tests/test_object_anchor_replacement_feasibility.py",
+      "kind": "full_test_suite"
+    },
+    {
+      "source": "setup.ps1",
+      "target": "tests/test_object_anchor_runtime.py",
+      "kind": "full_test_suite"
+    },
+    {
+      "source": "setup.ps1",
+      "target": "tests/test_object_anchor_world.py",
+      "kind": "full_test_suite"
+    },
+    {
+      "source": "setup.ps1",
+      "target": "tests/test_repeatability_preview_overlay.py",
+      "kind": "full_test_suite"
+    },
+    {
+      "source": "setup.ps1",
+      "target": "tests/test_yolo_pose_sanitize.py",
+      "kind": "full_test_suite"
+    },
+    {
+      "source": "src/apriltag_rgbd_validate.py",
+      "target": "src/apriltag_scale.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "src/apriltag_rgbd_validate.py",
+      "target": "src/apriltag_scale.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "src/apriltag_rgbd_validate.py",
+      "target": "src/rgbd_geometry.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "src/apriltag_rgbd_validate.py",
+      "target": "src/rgbd_geometry.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "src/apriltag_scale.py",
+      "target": "src/stereo_types.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "src/apriltag_scale.py",
+      "target": "src/stereo_types.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "src/apriltag_scale.py",
+      "target": "src/triangulate.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "src/apriltag_scale.py",
+      "target": "src/triangulate.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "src/apriltag_world.py",
+      "target": "src/apriltag_scale.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "src/apriltag_world.py",
+      "target": "src/apriltag_scale.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "src/apriltag_world.py",
+      "target": "src/stereo_types.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "src/apriltag_world.py",
+      "target": "src/stereo_types.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "src/calib_pipeline.py",
+      "target": "src/calibration_repository.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "src/capture.py",
+      "target": "src/stereo_types.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "src/capture.py",
+      "target": "src/stereo_types.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "src/depth_dense.py",
+      "target": "src/stereo_types.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "src/depth_dense.py",
+      "target": "src/stereo_types.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "src/depth_dense.py",
+      "target": "src/triangulate.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "src/depth_dense.py",
+      "target": "src/triangulate.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "src/depth_sparse.py",
+      "target": "src/stereo_types.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "src/depth_sparse.py",
+      "target": "src/stereo_types.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "src/depth_sparse.py",
+      "target": "src/triangulate.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "src/depth_sparse.py",
+      "target": "src/triangulate.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "src/detect.py",
+      "target": "src/stereo_types.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "src/detect.py",
+      "target": "src/stereo_types.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "src/object_anchor_pose.py",
+      "target": "src/object_anchor_config.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "src/object_anchor_pose.py",
+      "target": "src/object_anchor_config.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "src/object_anchor_preview.py",
+      "target": "src/apriltag_world.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "src/object_anchor_preview.py",
+      "target": "src/apriltag_world.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "src/object_anchor_preview.py",
+      "target": "src/object_anchor_runtime.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "src/object_anchor_preview.py",
+      "target": "src/object_anchor_runtime.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "src/object_anchor_preview.py",
+      "target": "src/object_anchor_world.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "src/object_anchor_preview.py",
+      "target": "src/object_anchor_world.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "src/object_anchor_preview.py",
+      "target": "src/stereo_types.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "src/object_anchor_preview.py",
+      "target": "src/stereo_types.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "src/object_anchor_runtime.py",
+      "target": "src/object_anchor_config.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "src/object_anchor_runtime.py",
+      "target": "src/object_anchor_config.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "src/object_anchor_runtime.py",
+      "target": "src/object_anchor_detector.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "src/object_anchor_runtime.py",
+      "target": "src/object_anchor_detector.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "src/object_anchor_runtime.py",
+      "target": "src/object_anchor_geometry.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "src/object_anchor_runtime.py",
+      "target": "src/object_anchor_geometry.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "src/object_anchor_runtime.py",
+      "target": "src/object_anchor_pose.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "src/object_anchor_runtime.py",
+      "target": "src/object_anchor_pose.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "src/object_anchor_runtime.py",
+      "target": "src/object_anchor_visualizer.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "src/object_anchor_runtime.py",
+      "target": "src/object_anchor_visualizer.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "src/object_anchor_visualizer.py",
+      "target": "src/object_anchor_config.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "src/object_anchor_visualizer.py",
+      "target": "src/object_anchor_config.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "src/object_anchor_visualizer.py",
+      "target": "src/object_anchor_pose.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "src/object_anchor_visualizer.py",
+      "target": "src/object_anchor_pose.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "src/object_anchor_world.py",
+      "target": "src/apriltag_world.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "src/object_anchor_world.py",
+      "target": "src/apriltag_world.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "src/object_anchor_world.py",
+      "target": "src/object_anchor_pose.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "src/object_anchor_world.py",
+      "target": "src/object_anchor_pose.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "src/object_anchor_world.py",
+      "target": "src/object_anchor_registration.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "src/object_anchor_world.py",
+      "target": "src/object_anchor_registration.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "src/object_anchor_world.py",
+      "target": "src/object_anchor_runtime.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "src/object_anchor_world.py",
+      "target": "src/object_anchor_runtime.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "src/rgbd_geometry.py",
+      "target": "src/stereo_types.py",
+      "kind": "direct_python_import"
+    },
+    {
+      "source": "src/rgbd_geometry.py",
+      "target": "src/stereo_types.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "src/split_rectify.py",
+      "target": "src/calibration_repository.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "src/split_rectify.py",
+      "target": "src/stereo_types.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_front_only_sanitizer_cli.py",
+      "target": "scripts/sanitize_yolo_pose_dataset.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_mvp_branch_aware_comparison.py",
+      "target": "scripts/analyze_mvp_branch_aware_comparison.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_mvp_branch_mapping.py",
+      "target": "experiments/object_anchor_mvp_final_comparison.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_mvp_branch_mapping.py",
+      "target": "scripts/diagnose_mvp_branch_mapping.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_mvp_translation_filters.py",
+      "target": "experiments/object_anchor_mvp_final_comparison.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_mvp_translation_filters.py",
+      "target": "scripts/diagnose_mvp_translation_filters.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_mvp_translation_filters.py",
+      "target": "src/apriltag_world.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_mvp_translation_filters.py",
+      "target": "src/object_anchor_pose.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_mvp_translation_filters.py",
+      "target": "src/object_anchor_runtime.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_object_anchor_capture.py",
+      "target": "src/object_anchor_capture.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_object_anchor_mvp_final_comparison.py",
+      "target": "experiments/object_anchor_mvp_final_comparison.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_object_anchor_pose.py",
+      "target": "src/object_anchor_config.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_object_anchor_pose.py",
+      "target": "src/object_anchor_pose.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_object_anchor_preview.py",
+      "target": "experiments/repeatability_run.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_object_anchor_preview.py",
+      "target": "src/apriltag_world.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_object_anchor_preview.py",
+      "target": "src/object_anchor_pose.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_object_anchor_preview.py",
+      "target": "src/object_anchor_preview.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_object_anchor_preview.py",
+      "target": "src/object_anchor_runtime.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_object_anchor_preview.py",
+      "target": "src/stereo_types.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_object_anchor_replacement_feasibility.py",
+      "target": "experiments/object_anchor_replacement_feasibility.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_object_anchor_replacement_feasibility.py",
+      "target": "src/detect.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_object_anchor_replacement_feasibility.py",
+      "target": "src/object_anchor_detector.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_object_anchor_replacement_feasibility.py",
+      "target": "src/object_anchor_world.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_object_anchor_runtime.py",
+      "target": "src/object_anchor_config.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_object_anchor_runtime.py",
+      "target": "src/object_anchor_detector.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_object_anchor_runtime.py",
+      "target": "src/object_anchor_pose.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_object_anchor_runtime.py",
+      "target": "src/object_anchor_registration.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_object_anchor_runtime.py",
+      "target": "src/object_anchor_runtime.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_object_anchor_world.py",
+      "target": "src/apriltag_world.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_object_anchor_world.py",
+      "target": "src/object_anchor_detector.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_object_anchor_world.py",
+      "target": "src/object_anchor_geometry.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_object_anchor_world.py",
+      "target": "src/object_anchor_pose.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_object_anchor_world.py",
+      "target": "src/object_anchor_runtime.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_object_anchor_world.py",
+      "target": "src/object_anchor_world.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_repeatability_preview_overlay.py",
+      "target": "experiments/repeatability_run.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_yolo_pose_sanitize.py",
+      "target": "src/object_anchor_config.py",
+      "kind": "python_import_or_explicit_module"
+    },
+    {
+      "source": "tests/test_yolo_pose_sanitize.py",
+      "target": "src/yolo_pose_sanitize.py",
+      "kind": "python_import_or_explicit_module"
+    }
+  ]
+}
