@@ -1,0 +1,63 @@
+schema_version: 1
+device:
+  serial_number: null
+  device_index: 0
+
+profiles:
+  allow_fallback: false
+  RGB:
+    width: 1280
+    height: 800
+    fps: 30
+    format: OB_FORMAT_RGB
+  DEPTH:
+    width: null
+    height: null
+    fps: null
+    format: null
+  LEFT_IR:
+    width: null
+    height: null
+    fps: null
+    format: null
+  RIGHT_IR:
+    width: null
+    height: null
+    fps: null
+    format: null
+  ACCEL:
+    sample_rate_hz: 200
+    full_scale_range: null
+  GYRO:
+    sample_rate_hz: 200
+    full_scale_range: null
+
+probe:
+  duration_seconds: 1.0
+
+record:
+  queue_size: 8192
+  sample_fps: 1.0
+  default_duration_seconds:
+    static: 60
+    translation: 15
+    translation-yaw: 15
+
+analysis:
+  gap_factor: 1.5
+  minimum_rate_ratio: 0.95
+  maximum_drop_ratio: 0.01
+  pairing_tolerance_us:
+    video: 20000
+    imu: 10000
+    video_imu_host: 20000
+  imu:
+    mad_multiplier: 6.0
+    gyro_physical_spike_threshold_rad_s: 1.0
+    accel_physical_spike_threshold_mps2: 20.0
+    maximum_gyro_bias_norm_rad_s: 0.05
+    maximum_accel_gravity_error_mps2: 0.5
+    maximum_spike_ratio: 0.01
+
+output:
+  root: out/sensor_validation
