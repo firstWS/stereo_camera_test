@@ -1,0 +1,52 @@
+schema_version: 1
+
+session:
+  session_id: "20260807_161354_scenario_a"
+  path: "out/datasets/gemini335l/20260807_161354_scenario_a"
+
+mask_semantics:
+  interval: half_open
+  rule: "start_timestamp <= device_timestamp_us < boundary_timestamp_us"
+
+durations_sec:
+  - 0.5
+  - 1.0
+  - 2.0
+  - 3.0
+  - 5.0
+
+anchors:
+  B_motion_start:
+    start_frame: 81
+    start_device_timestamp_us: 29634275450
+    convention: first_sustained_motion_frame
+    motion_class: motion_start
+  C_pre_cup2:
+    start_frame: 202
+    start_device_timestamp_us: 29638313584
+    convention: pre_cup2_appearance
+    motion_class: pre_cup2
+  D_active_with_cup2:
+    start_frame: 248
+    start_device_timestamp_us: 29639848742
+    convention: active_with_cup2
+    motion_class: active_with_cup2
+
+reference:
+  source: derived/reference/apriltag_pose_smoothed.csv
+  role: evaluation_only
+
+cup2:
+  semantic_id: cup2
+  observations_csv: derived/cups/observations.csv
+
+success_thresholds:
+  pose_availability_min: 0.90
+  major_tracking_lost_max: 0
+  cup2_world_median_max_m: 0.10
+  cup2_world_p90_max_m: 0.20
+  dropout_normal_max_sec: 3.0
+  dropout_stress_sec: 5.0
+
+output:
+  root: out/evaluation/phase3

@@ -46,6 +46,10 @@ from .apriltag_reference import (
     build_and_write_apriltag_reference,
     reference_config_from_mapping,
 )
+from .apriltag_runtime_pose import (
+    RUNTIME_POSE_CSV_FIELDS,
+    apriltag_observation_pose_columns,
+)
 from .reader import DatasetReader
 from .session_metadata import write_json
 
@@ -151,6 +155,7 @@ def derive_observations(
         "visible",
         "reprojection_error_px",
         "notes",
+        *RUNTIME_POSE_CSV_FIELDS,
     ]
     detection_fields = [
         "frame_number",
@@ -268,6 +273,10 @@ def derive_observations(
                             "visible": True,
                             "reprojection_error_px": obs.reprojection_error_px,
                             "notes": notes,
+                            **apriltag_observation_pose_columns(
+                                visible=True,
+                                T_world_camera=t_world_camera,
+                            ),
                         }
                     )
                 apriltag_pose_frames.append(
@@ -289,6 +298,10 @@ def derive_observations(
                         "visible": False,
                         "reprojection_error_px": "",
                         "notes": result.notes[:200],
+                        **apriltag_observation_pose_columns(
+                            visible=False,
+                            T_world_camera=None,
+                        ),
                     }
                 )
                 apriltag_pose_frames.append(

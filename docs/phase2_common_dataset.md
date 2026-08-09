@@ -85,6 +85,19 @@ Cup tracking은 lightweight MOT 구조를 사용합니다.
 
 Cup depth는 native Depth를 RGB bbox에 **geometric projection**으로 샘플합니다 (`derive` config: `max_rgb_depth_delta_us`, `depth_is_millimeters`). RGB `frame_number`와 동일한 Depth `frame_number`를 가정하지 않으며, `device_timestamp_us` nearest matching을 사용합니다. `detections.csv` / `observations.csv`에 `depth_frame_number`, `depth_device_timestamp_us`, `rgb_depth_delta_us` provenance가 포함됩니다.
 
+### `apriltag/observations.csv` runtime pose columns
+
+`derive`는 disambiguated runtime `T_world_camera` (meters, `P_world = T_world_camera @ P_camera`)를 다음 컬럼으로 persist합니다. 이 pose는 centered SE(3) reference smoothing **이전**의 unsmoothed runtime pose입니다.
+
+| Column | Meaning |
+|--------|---------|
+| `visible` | AprilTag detection 존재 |
+| `pose_valid` | disambiguated `T_world_camera` 계산 성공 (authoritative validity) |
+| `world_tx` / `world_ty` / `world_tz` | translation (m) |
+| `world_qw` / `world_qx` / `world_qy` / `world_qz` | rotation quaternion (w, x, y, z) |
+
+`pose_valid=false` 행의 `world_*` 값은 비어 있으며, consumer는 `pose_valid`로만 pose 사용 여부를 판단합니다.
+
 ## 5. Schema 요약
 
 ### `session.json` (schema v1)
