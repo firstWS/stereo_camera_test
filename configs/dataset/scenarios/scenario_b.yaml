@@ -1,0 +1,14 @@
+schema_version: 1
+scenario_name: "Scenario B - Translation + Yaw"
+scenario_slug: scenario_b
+camera_motion: translation_yaw
+anchor_visibility: visible
+cup1_visibility: visible
+cup2:
+  initial_state: initially_hidden
+  notes: "Cup2 is hidden at session start; visibility metadata only."
+planned_translation_m: 0.30
+planned_yaw_deg: 22.5
+planned_duration_sec: 15
+operator: manual
+notes: "Planned motion metadata only; not ground truth."

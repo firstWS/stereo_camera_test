@@ -1,0 +1,84 @@
+schema_version: 1
+device:
+  serial_number: null
+  device_index: 0
+
+profiles:
+  allow_fallback: false
+  RGB:
+    width: 1280
+    height: 800
+    fps: 30
+    format: OB_FORMAT_RGB
+  DEPTH:
+    width: null
+    height: null
+    fps: null
+    format: null
+  LEFT_IR:
+    width: null
+    height: null
+    fps: null
+    format: null
+  RIGHT_IR:
+    width: null
+    height: null
+    fps: null
+    format: null
+  ACCEL:
+    sample_rate_hz: 200
+    full_scale_range: null
+  GYRO:
+    sample_rate_hz: 200
+    full_scale_range: null
+
+record:
+  queue_size: 8192
+
+integrity:
+  gap_factor: 1.5
+  video_rate_hz: 30.0
+  imu_rate_hz: 200.0
+
+derive:
+  min_valid_depth_ratio: 0.03
+  max_rgb_depth_delta_us: 33333
+  depth_is_millimeters: true
+  z_min_m: 0.05
+  z_max_m: 40.0
+  cup_depth:
+    method: robust_near_quantile
+    near_quantile: 0.25
+    min_near_points: 1
+  cup_mot:
+    w_iou: 0.35
+    w_center: 0.35
+    w_scale: 0.20
+    w_world: 0.10
+    center_dist_threshold: 0.25
+    scale_diff_threshold: 0.45
+    world_dist_threshold_m: 0.15
+    max_assignment_cost: 0.85
+    reactivation_max_cost: 0.70
+    min_confirm_hits: 2
+    max_tentative_miss_frames: 2
+    max_lost_frames: 30
+    use_world_cue: true
+  apriltag_world:
+    enabled: true
+    dictionary: APRILTAG_36H11
+    tag_size_m: 0.135
+    front_normal: "+Z"
+    top_direction: "+Y"
+    tags:
+      0:
+        position: [0.0, 0.0, 0.0]
+        yaw_deg: 0.0
+  apriltag_reference:
+    enabled: true
+    method: centered_se3
+    window_frames: 9
+    gap_interp_max_frames: 3
+
+output:
+  root: out/datasets/gemini335l

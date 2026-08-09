@@ -1,0 +1,22 @@
+schema_version: 1
+scenario_name: "Scenario A - Rightward Yaw Pan"
+scenario_slug: scenario_a
+camera_motion: rightward_yaw
+anchor_visibility: visible
+cup1_visibility: visible
+cup2:
+  initial_state: initially_hidden
+  notes: "Cup2 is hidden at session start; appears after rightward yaw pan."
+# null = intentional translation not planned; incidental handheld translation allowed.
+planned_translation_m: null
+planned_yaw_deg: 25.0
+planned_duration_sec: 15
+planned_motion_windows:
+  initial_hold_sec: [0.0, 3.0]
+  yaw_pan_sec: [3.0, 5.0]
+  final_hold_sec: [5.0, 15.0]
+operator: manual
+notes: >
+  Dominant motion is handheld rightward yaw/pan (~20–30° planned).
+  Small natural translation from hand/body motion is allowed but not required.
+  Values are operator planned metadata, not ground truth.
