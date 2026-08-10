@@ -70,6 +70,21 @@ class DepthTimestampMatch:
     rgb_depth_delta_us: int
 
 
+@dataclass(frozen=True)
+class DepthPixelRgbProjection:
+    """Per-pixel Depth→RGB camera projection for valid native depth samples."""
+
+    u_depth: np.ndarray
+    v_depth: np.ndarray
+    x_rgb: np.ndarray
+    y_rgb: np.ndarray
+    z_rgb: np.ndarray
+    u_rgb: np.ndarray
+    v_rgb: np.ndarray
+    source_valid_count: int
+    invalid_source_count: int
+
+
 def _intrinsic_matrix(entry: Mapping[str, Any]) -> np.ndarray:
     intrinsic = entry.get("intrinsic") or {}
     fx = float(intrinsic.get("fx", 0.0))
@@ -221,28 +236,47 @@ def match_nearest_depth_timestamp(
     )
 
 
-def _depth_pixels_to_rgb_points(
+def project_depth_pixels_to_rgb(
     depth_m: np.ndarray,
     calib: RgbDepthCalibration,
     *,
     z_min_m: float,
     z_max_m: float,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    rgb_width: int | None = None,
+    rgb_height: int | None = None,
+) -> DepthPixelRgbProjection:
+    """Project valid native depth pixels into the RGB camera frame and pixel grid."""
+    depth_m = normalize_depth_image(depth_m)
     height, width = depth_m.shape[:2]
+    rgb_width = int(rgb_width if rgb_width is not None else calib.rgb_width)
+    rgb_height = int(rgb_height if rgb_height is not None else calib.rgb_height)
     v_d, u_d = np.indices((height, width), dtype=np.float64)
     z_d = depth_m.astype(np.float64)
     valid = np.isfinite(z_d) & (z_d >= z_min_m) & (z_d <= z_max_m)
+    source_valid_count = int(valid.sum())
+    invalid_source_count = int(depth_m.size - source_valid_count)
     if not np.any(valid):
-        return (
-            np.empty(0, dtype=np.float64),
-            np.empty(0, dtype=np.float64),
-            np.empty(0, dtype=np.float64),
+        empty = np.empty(0, dtype=np.float64)
+        return DepthPixelRgbProjection(
+            u_depth=empty,
+            v_depth=empty,
+            x_rgb=empty,
+            y_rgb=empty,
+            z_rgb=empty,
+            u_rgb=empty,
+            v_rgb=empty,
+            source_valid_count=source_valid_count,
+            invalid_source_count=invalid_source_count,
         )
 
     fx_d = calib.k_depth[0, 0]
     fy_d = calib.k_depth[1, 1]
     cx_d = calib.k_depth[0, 2]
     cy_d = calib.k_depth[1, 2]
+    fx_r = calib.k_rgb[0, 0]
+    fy_r = calib.k_rgb[1, 1]
+    cx_r = calib.k_rgb[0, 2]
+    cy_r = calib.k_rgb[1, 2]
 
     z = z_d[valid]
     u = u_d[valid]
@@ -256,8 +290,46 @@ def _depth_pixels_to_rgb_points(
     x_rgb = points_rgb[0]
     y_rgb = points_rgb[1]
     z_rgb = points_rgb[2]
-    front = z_rgb > z_min_m
-    return x_rgb[front], y_rgb[front], z_rgb[front]
+    u_rgb = fx_r * x_rgb / z_rgb + cx_r
+    v_rgb = fy_r * y_rgb / z_rgb + cy_r
+    return DepthPixelRgbProjection(
+        u_depth=u,
+        v_depth=v,
+        x_rgb=x_rgb,
+        y_rgb=y_rgb,
+        z_rgb=z_rgb,
+        u_rgb=u_rgb,
+        v_rgb=v_rgb,
+        source_valid_count=source_valid_count,
+        invalid_source_count=invalid_source_count,
+    )
+
+
+def _depth_pixels_to_rgb_points(
+    depth_m: np.ndarray,
+    calib: RgbDepthCalibration,
+    *,
+    z_min_m: float,
+    z_max_m: float,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    projection = project_depth_pixels_to_rgb(
+        depth_m,
+        calib,
+        z_min_m=z_min_m,
+        z_max_m=z_max_m,
+    )
+    if projection.x_rgb.size == 0:
+        return (
+            np.empty(0, dtype=np.float64),
+            np.empty(0, dtype=np.float64),
+            np.empty(0, dtype=np.float64),
+        )
+    front = projection.z_rgb > z_min_m
+    return (
+        projection.x_rgb[front],
+        projection.y_rgb[front],
+        projection.z_rgb[front],
+    )
 
 
 def _invalid_depth_estimate(*, valid_pixel_ratio: float, notes: str) -> DepthEstimate:

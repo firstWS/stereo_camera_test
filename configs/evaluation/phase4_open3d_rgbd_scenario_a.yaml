@@ -1,0 +1,17 @@
+schema_version: 1
+
+# Phase 3 protocol is authoritative for windows, thresholds, and evaluation paths.
+phase3_protocol_config: configs/evaluation/phase3_dropout_scenario_a.yaml
+
+candidate:
+  continuous_trajectory: out/analysis/phase4_open3d_rgbd_continuous/trajectory.csv
+  continuous_summary: out/analysis/phase4_open3d_rgbd_continuous/summary.json
+  continuous_provenance: out/analysis/phase4_open3d_rgbd_continuous/provenance.json
+
+comparison:
+  hold_last_pose_results: out/evaluation/phase3/20260807_161354_scenario_a/hold_last_pose
+
+output:
+  root: out/evaluation/phase4
+  session_id: 20260807_161354_scenario_a
+  algorithm_dir: open3d_rgbd_odometry
